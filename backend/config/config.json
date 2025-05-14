@@ -1,0 +1,33 @@
+{
+    "development": {
+       "username": "postgres",
+      "password": "1517",
+      "database": "chigoneka_school",
+      "host": "localhost",
+      "dialect": "postgres",
+      "logging": false
+    },
+     "local": {
+       "url": "postgresql://postgres.mctubsidshtkxpwpzfjj:123456789@aws-0-sa-east-1.pooler.supabase.com:5432/postgres",
+       "dialect": "postgres"
+     
+   },
+    "test": {
+      "username": "alinafe",
+      "password": "1517",
+      "database": "chigoneka_school",
+      "host": "localhost",
+      "dialect": "postgres",
+      "logging": false
+    },
+    "production": {
+      "use_env_variable":"DATABASE_URL",
+      "dialect": "postgres",
+      "dialectOptions": {
+        "ssl": {
+            "rejectUnauthorized": false
+        }
+        }
+    }
+  }
+  
