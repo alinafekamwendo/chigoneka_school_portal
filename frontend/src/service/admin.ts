@@ -129,7 +129,7 @@ const adminService = {
     token: string,
   ): Promise<Admin> => {
     try {
-      const response = await axios.put(`${API_BASE_URL}/admins/${id}`, data, {
+      const response = await axios.put(`${API_BASE_URL}/auth/users/${id}`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",

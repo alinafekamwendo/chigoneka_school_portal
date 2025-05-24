@@ -1,4 +1,3 @@
-// app/dashboard/admin/admins/update/[id]/page.tsx
 "use client";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -17,17 +16,17 @@ interface Admin {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
-  user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    username: string;
-    email: string;
-    phone?: string;
-    sex?: "MALE" | "FEMALE";
-    address?: string;
-    profilePhoto?: string | null; // Make it optional
-  };
+  // User properties
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  phone?: string;
+  sex?: "MALE" | "FEMALE";
+  address?: string;
+  profilePhoto?: string | null;
+  dob?: string | null;
+  role: string;
 }
 
 export default function AdminProfilePage() {
@@ -44,10 +43,12 @@ export default function AdminProfilePage() {
         if (!token) throw new Error("No authentication token found");
 
         const adminData = await adminService.getUserById(id as string, token);
-        
+        console.log("API Response:", adminData);
 
-        // Ensure the user object exists and has required properties
-console.log(adminData);
+        if (!adminData) {
+          throw new Error("Admin data not found");
+        }
+
         setAdmin(adminData);
       } catch (error) {
         toast({
@@ -91,12 +92,16 @@ console.log(adminData);
       .toUpperCase();
   };
 
+  const fullName = `${admin.firstName} ${admin.lastName}`;
+  const initials = getInitials(fullName);
+  const profilePhoto = admin.profilePhoto || "/default-avatar.png";
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-4">
       <div className="mx-auto max-w-4xl">
         <div className="mb-8 flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">Admin Profile</h1>
-          <Button onClick={() => router.push("/dashboard/admin/admins")}>
+          <Button onClick={() => router.push("/dashboard/admin/admins/manage")}>
             Back to Admins
           </Button>
         </div>
@@ -108,15 +113,9 @@ console.log(adminData);
               <CardContent className="flex flex-col items-center p-6">
                 <div className="relative mb-6">
                   <Avatar className="h-32 w-32">
-                    {/* Add null check for profilePhoto */}
-                    <AvatarImage
-                      src={ "/default-avatar.png"}
-                      alt={`user`}
-                    />
+                    <AvatarImage src={profilePhoto} alt={fullName} />
                     <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-4xl text-white">
-                      {getInitials(
-                        `${admin.user.firstName} ${admin.user.lastName}`,
-                      )}
+                      {initials}
                     </AvatarFallback>
                   </Avatar>
                   <Badge
@@ -128,20 +127,20 @@ console.log(adminData);
                 </div>
 
                 <h2 className="text-center text-2xl font-semibold">
-                  {admin.user.firstName} {admin.user.lastName}
+                  {fullName}
                 </h2>
-                <p className="mb-6 text-gray-500">@{admin.user.username}</p>
+                <p className="mb-6 text-gray-500">@{admin.username}</p>
 
                 <div className="w-full space-y-4">
                   <div className="flex items-center space-x-4">
                     <Mail className="h-5 w-5 text-gray-500" />
-                    <span className="text-gray-700">{admin.user.email}</span>
+                    <span className="text-gray-700">{admin.email}</span>
                   </div>
 
-                  {admin.user.phone && (
+                  {admin.phone && (
                     <div className="flex items-center space-x-4">
                       <Phone className="h-5 w-5 text-gray-500" />
-                      <span className="text-gray-700">{admin.user.phone}</span>
+                      <span className="text-gray-700">{admin.phone}</span>
                     </div>
                   )}
 
@@ -152,11 +151,11 @@ console.log(adminData);
                     </span>
                   </div>
 
-                  {admin.user.sex && (
+                  {admin.sex && (
                     <div className="flex items-center space-x-4">
                       <User className="h-5 w-5 text-gray-500" />
                       <span className="capitalize text-gray-700">
-                        {admin.user.sex.toLowerCase()}
+                        {admin.sex.toLowerCase()}
                       </span>
                     </div>
                   )}
@@ -181,23 +180,21 @@ console.log(adminData);
                       First Name
                     </h3>
                     <p className="mt-1 text-lg font-medium">
-                      {admin.user.firstName}
+                      {admin.firstName}
                     </p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">
                       Last Name
                     </h3>
-                    <p className="mt-1 text-lg font-medium">
-                      {admin.user.lastName}
-                    </p>
+                    <p className="mt-1 text-lg font-medium">{admin.lastName}</p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">
                       Username
                     </h3>
                     <p className="mt-1 text-lg font-medium">
-                      @{admin.user.username}
+                      @{admin.username}
                     </p>
                   </div>
                   <div>
@@ -214,7 +211,7 @@ console.log(adminData);
               </CardContent>
             </Card>
 
-            {admin.user.address && (
+            {admin.address && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -223,7 +220,7 @@ console.log(adminData);
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-700">{admin.user.address}</p>
+                  <p className="text-gray-700">{admin.address}</p>
                 </CardContent>
               </Card>
             )}
@@ -239,7 +236,7 @@ console.log(adminData);
               </Button>
               <Button
                 variant="outline"
-                onClick={() => router.push("/dashboard/admin/admins")}
+                onClick={() => router.push("/dashboard/admin/admins/manage")}
                 className="w-full"
               >
                 Back to List
