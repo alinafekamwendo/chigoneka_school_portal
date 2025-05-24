@@ -293,7 +293,7 @@ export default function DefaultLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <RoleProtectedRoute allowedRoles={["teacher", "student"]}>
+    // <RoleProtectedRoute allowedRoles={["teacher", "student"]}>
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} menuGroups={menuGroups}/>
@@ -313,6 +313,6 @@ export default function DefaultLayout({
         </main>
       </div>
       </div>
-    </RoleProtectedRoute>
+    //  </RoleProtectedRoute> 
   );
 }

@@ -11,6 +11,10 @@ export interface User {
   email: string;
   role: "admin" | "teacher" | "parent" | "student";
   name: string;
+  profilePicture?: string;
+  phone?: string;
+  address?: string;
+  dateOfBirth?: string;
   // Add other user fields as needed
 }
 
@@ -66,6 +70,11 @@ export const signup = async (userData: {
   email: string;
   name: string;
   role: string;
+  phone?: string;
+  address?: string;
+  dateOfBirth?: string;
+  profilePicture?: string;
+  level?: string;
 }): Promise<User> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/auth/signup`, userData);
@@ -205,7 +214,7 @@ axios.interceptors.response.use(
     if (error.response?.status === 401 || error.response?.status === 403) {
       if (error.response?.data?.shouldLogout) {
         await logout();
-        window.location.href = "/login";
+        window.location.href = "/auth/login";
         return Promise.reject(error);
       }
     }
@@ -214,7 +223,7 @@ axios.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (refreshCount >= MAX_REFRESH_ATTEMPTS) {
         await logout();
-        window.location.href = "/login";
+        window.location.href = "/auth/login";
         return Promise.reject(error);
       }
 
@@ -239,7 +248,7 @@ axios.interceptors.response.use(
         return axios(originalRequest);
       } catch (refreshError) {
         await logout();
-        window.location.href = "/login";
+        window.location.href = "/auth/login";
         return Promise.reject(refreshError);
       }
     }

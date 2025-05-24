@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, { useState, useMemo, ChangeEvent } from "react";
+import React, { useState, useMemo, ChangeEvent, useCallback } from "react";
 import {
   FaEye,
   FaTrash,
@@ -10,14 +9,15 @@ import {
   FaEdit,
   FaEllipsisV,
 } from "react-icons/fa";
-import { useRouter } from "next/navigation"; // Import useRouter
-import ModalDialog from "../ModalDialogs/ModalDialog"; // Import the reusable modal
+import { useRouter } from "next/navigation";
+import ModalDialog from "../ModalDialogs/ModalDialog";
 
 interface TableProps {
   title: string;
-  role: "student" | "teacher" | "parent" | "admin"; // Add role prop
+  role: "student" | "teacher" | "parent" | "admin";
   columns: string[];
   data: Record<string, any>[];
+  onRefresh?: () => Promise<void>;
 }
 
 interface SortConfig {
@@ -25,8 +25,14 @@ interface SortConfig {
   direction: "asc" | "desc";
 }
 
-const Table: React.FC<TableProps> = ({ title, role, columns, data }) => {
-  const router = useRouter(); // Initialize useRouter
+const Table: React.FC<TableProps> = ({
+  title,
+  role,
+  columns,
+  data,
+  onRefresh,
+}) => {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [rowsPerPage] = useState<number>(5);
@@ -34,12 +40,13 @@ const Table: React.FC<TableProps> = ({ title, role, columns, data }) => {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] =
-    useState<boolean>(false); // State for delete confirmation
-
+    useState<boolean>(false);
   const [rowToDelete, setRowToDelete] = useState<Record<string, any> | null>(
     null,
-  ); // Track the row to delete
+  );
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Memoized filtered data
   const filteredData = useMemo(() => {
     return data.filter((row) =>
       Object.values(row).some((value) =>
@@ -48,6 +55,7 @@ const Table: React.FC<TableProps> = ({ title, role, columns, data }) => {
     );
   }, [data, searchTerm]);
 
+  // Memoized sorted data
   const sortedData = useMemo(() => {
     if (!sortConfig) return filteredData;
     return [...filteredData].sort((a, b) => {
@@ -58,99 +66,85 @@ const Table: React.FC<TableProps> = ({ title, role, columns, data }) => {
     });
   }, [filteredData, sortConfig]);
 
-  const handleSearch = (event: ChangeEvent<HTMLInputElement>) => {
+  // Pagination calculations
+  const indexOfLastRow = currentPage * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentRows = sortedData.slice(indexOfFirstRow, indexOfLastRow);
+  const totalPages = Math.ceil(sortedData.length / rowsPerPage);
+  const numberOfRecords = filteredData.length;
+
+  // Handlers
+  const handleSearch = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
     setCurrentPage(1);
-  };
+  }, []);
 
-  const handleSort = (column: string) => {
+  const handleSort = useCallback((column: string) => {
     const key = column.toLowerCase().replace(/ /g, "_");
     setSortConfig((prev) =>
       prev && prev.key === key && prev.direction === "asc"
         ? { key, direction: "desc" }
         : { key, direction: "asc" },
     );
-  };
+  }, []);
 
-  const indexOfLastRow = currentPage * rowsPerPage;
-  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
-  const currentRows = sortedData.slice(indexOfFirstRow, indexOfLastRow);
+  const handleView = useCallback(
+    (row: Record<string, any>) => {
+      router.push(`/dashboard/admin/profiles/${row.id}`);
+    },
+    [role, router],
+  );
 
-  const totalPages = Math.ceil(sortedData.length / rowsPerPage);
-  const numberOfRecords = filteredData.length;
+  const handleRefresh = useCallback(async () => {
+    if (onRefresh) {
+      setIsRefreshing(true);
+      try {
+        await onRefresh();
+      } finally {
+        setIsRefreshing(false);
+      }
+    }
+  }, [onRefresh]);
 
-  // Handle View
-  const handleView = (row: Record<string, any>) => {
-    // Navigate to the profile page with the row ID
-    
-    router.push(`/dashboard/admin/profiles/${row.id}`);
-  };
-
-  // Floating menu handlers
-  const toggleMenu = () => {
+  const toggleMenu = useCallback(() => {
     setIsMenuOpen(!isMenuOpen);
-  };
+  }, [isMenuOpen]);
 
-  const handleDeleteAll = () => {
-    alert("Delete All functionality");
-    setIsMenuOpen(false);
-  };
-
-  const openModal = () => {
+  const openModal = useCallback(() => {
     setIsModalOpen(true);
     setIsMenuOpen(false);
-  };
+  }, []);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setIsModalOpen(false);
-  };
+  }, []);
 
-  const handleAddStudent = async (formData: Record<string, string>) => {
-    try {
-      // Replace with your backend API endpoint
-      const response = await fetch("/api/students", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-      if (response.ok) {
-        alert("Student added successfully!");
-        closeModal();
-        // Optionally, refresh the table data here
-      } else {
-        alert("Failed to add student.");
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("An error occurred while adding the student.");
-    }
-  };
+  const handleDeleteAll = useCallback(() => {
+    alert("Delete All functionality");
+    setIsMenuOpen(false);
+  }, []);
 
-  // Delete confirmation handlers
-  const openDeleteConfirmation = (row: Record<string, any>) => {
-    setRowToDelete(row); // Set the row to delete
-    setIsDeleteConfirmationOpen(true); // Open the confirmation dialog
-  };
+  const openDeleteConfirmation = useCallback((row: Record<string, any>) => {
+    setRowToDelete(row);
+    setIsDeleteConfirmationOpen(true);
+  }, []);
 
-  const closeDeleteConfirmation = () => {
-    setIsDeleteConfirmationOpen(false); // Close the confirmation dialog
-    setRowToDelete(null); // Reset the row to delete
-  };
+  const closeDeleteConfirmation = useCallback(() => {
+    setIsDeleteConfirmationOpen(false);
+    setRowToDelete(null);
+  }, []);
 
-  const handleDeleteRow = async () => {
+  const handleDeleteRow = useCallback(async () => {
     if (!rowToDelete) return;
 
     try {
-      // Replace with your backend API endpoint
       const response = await fetch(`/api/students/${rowToDelete.id}`, {
         method: "DELETE",
       });
       if (response.ok) {
         alert("Row deleted successfully!");
         closeDeleteConfirmation();
-        // Optionally, refresh the table data here
+        if (onRefresh) await onRefresh();
       } else {
         alert("Failed to delete row.");
       }
@@ -158,10 +152,11 @@ const Table: React.FC<TableProps> = ({ title, role, columns, data }) => {
       console.error("Error:", error);
       alert("An error occurred while deleting the row.");
     }
-  };
+  }, [rowToDelete, onRefresh, closeDeleteConfirmation]);
 
   return (
     <div className="rounded-md bg-white p-4 shadow-md dark:bg-gray-800">
+      {/* Table header with refresh button */}
       <div className="mb-5 flex items-center justify-between">
         <div>
           <h4 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -171,6 +166,14 @@ const Table: React.FC<TableProps> = ({ title, role, columns, data }) => {
         </div>
 
         <div className="flex gap-3">
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 rounded bg-blue-500 px-3 py-2 text-white disabled:opacity-50"
+          >
+            {isRefreshing ? "Refreshing..." : "Refresh"}
+          </button>
+
           <input
             type="text"
             placeholder="Search..."
@@ -178,6 +181,7 @@ const Table: React.FC<TableProps> = ({ title, role, columns, data }) => {
             onChange={handleSearch}
             className="w-full rounded border border-gray-300 px-3 py-2 text-black dark:border-gray-600 dark:bg-gray-900 dark:text-white"
           />
+
           <button
             className="rounded bg-blue-500 p-2 text-white"
             onClick={toggleMenu}
@@ -218,10 +222,7 @@ const Table: React.FC<TableProps> = ({ title, role, columns, data }) => {
                   className="cursor-pointer px-4 py-2 font-semibold text-gray-700 dark:text-white"
                   onClick={() => handleSort(column)}
                 >
-                  <div className="flex items-center gap-1">
-                    {/* <FaSort className="text-gray-600 dark:text-gray-300" /> */}
-                    {column}
-                  </div>
+                  <div className="flex items-center gap-1">{column}</div>
                 </th>
               ))}
               <th className="px-4 py-2 text-gray-700 dark:text-white">
@@ -258,7 +259,7 @@ const Table: React.FC<TableProps> = ({ title, role, columns, data }) => {
                   <td className="flex gap-3 px-4 py-3">
                     <button
                       className="rounded bg-gray-200 p-2 dark:bg-gray-700"
-                      onClick={() => handleView(row)} // Call handleView on click
+                      onClick={() => handleView(row)}
                     >
                       <FaEye className="text-gray-600 dark:text-gray-300" />
                     </button>
@@ -270,7 +271,7 @@ const Table: React.FC<TableProps> = ({ title, role, columns, data }) => {
                     </button>
                     <button
                       className="rounded bg-red-500 p-2"
-                      onClick={() => openDeleteConfirmation(row)} // Open confirmation dialog
+                      onClick={() => openDeleteConfirmation(row)}
                     >
                       <FaTrash className="text-white" />
                     </button>
@@ -295,7 +296,7 @@ const Table: React.FC<TableProps> = ({ title, role, columns, data }) => {
       {isModalOpen && (
         <ModalDialog
           title={`Add ${title}`}
-          role={role} // Pass the role
+          role={role}
           onSubmit={async (data) => {
             try {
               const response = await fetch("/api/users", {
@@ -308,6 +309,7 @@ const Table: React.FC<TableProps> = ({ title, role, columns, data }) => {
               if (response.ok) {
                 alert("User created successfully!");
                 closeModal();
+                if (onRefresh) await onRefresh();
               } else {
                 alert("Failed to create user.");
               }
@@ -351,4 +353,4 @@ const Table: React.FC<TableProps> = ({ title, role, columns, data }) => {
   );
 };
 
-export default Table;
+export default React.memo(Table);

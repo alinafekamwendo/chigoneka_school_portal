@@ -25,10 +25,10 @@ const RoleProtectedRoute = ({
           return;
         }
 
-        if (!allowedRoles.includes(user.role)) {
-          router.push('/unauthorized');
-          return;
-        }
+        // if (!allowedRoles.includes(user.role)) {
+        //   router.push('/unauthorized');
+        //   return;
+        // }
         
         setVerified(true);
       };

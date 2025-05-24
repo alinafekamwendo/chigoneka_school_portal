@@ -22,6 +22,8 @@ router.post("/login", loginUser);
 router.get("/uploads/profilephotos/:filename", serveProfilePhoto);
 router.get("/users", getAllUsers);
 router.post("/refresh-token", refreshToken);
+router.post("/logout", logout);
+
   
   // Authenticated routes (require valid JWT)
 router.use(authenticate);
@@ -29,7 +31,7 @@ router.use(authenticate);
 // User management routes
 
 router.get(
-  "/users/:id",
+  "/user/:id",
   authorize(["admin", "teacher", "parent", "student"]),
   getUserById
 );
@@ -62,7 +64,6 @@ router.get(
 );
 router.get("/current-user", getCurrentUser);
 
-router.post("/logout", logout);
 
 module.exports = router;
 //const { authenticate, authorize } = require("../middleware/authMiddleware");

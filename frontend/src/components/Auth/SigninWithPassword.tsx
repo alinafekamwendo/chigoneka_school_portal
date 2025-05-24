@@ -63,9 +63,9 @@ export default function SigninWithPassword() {
       await login({ email, password }); // assumes username = email
       setShowSuccess(true);
       setTimeout(() => {
-        router.push(redirect || `dashboard/${user?.role}`);
+        router.push(redirect || "/");
         setShowSuccess(false);
-      }, 2000);
+      }, 1000);
     } catch (err: any) {
       setError("Login failed. Please check your credentials.");
     } finally {
@@ -172,7 +172,7 @@ export default function SigninWithPassword() {
           disabled={isLoading}
         >
           {isLoading ? (
-            <CircularProgress size={24} className="text-white" />
+            <CircularProgress size={24} className="text-white bg-blue-950" />
           ) : (
             "Sign In"
           )}

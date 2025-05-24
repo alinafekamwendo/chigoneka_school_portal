@@ -269,6 +269,7 @@ const CustomDataGrid = () => {
               },
               "& .MuiDataGrid-columnHeaderTitle": {
                 fontWeight: "bold",
+                color: prefersDarkMode ? "#f3f4f6" : "#374151",
               },
             },
           },
@@ -294,8 +295,8 @@ const CustomDataGrid = () => {
   );
 
   return (
-    <div className="dark:bg-gray-900 " style={{ height: 600, width: "100%" }}>
-      <ThemeProvider className="bg-red" theme={getMuiTheme()}>
+    <div className=" " style={{ height: 600, width: "100%" }}>
+      <ThemeProvider  theme={getMuiTheme()}>
         <DataGrid
           
           apiRef={apiRef}

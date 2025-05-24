@@ -1,6 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const authRoutes = require("./routes/auth.route.js");
+const adminRoutes = require("./routes/admin.route.js");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const path = require("path");
@@ -31,6 +32,7 @@ app.use(
 // API routes
 
 app.use(`/${apiVersion}/auth`, authRoutes);
+app.use(`/${apiVersion}/admin`, adminRoutes);
 
 // Home route
 app.get(`/${apiVersion}`, (req, res) => {
