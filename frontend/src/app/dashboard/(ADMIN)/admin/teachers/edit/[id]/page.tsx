@@ -1,9 +1,10 @@
 import React from 'react';
+import EditTeacherPage from '@/components/Teachers/EditTeacher';
 
 function page() {
   return (
     <div>
-      <h1>home</h1>
+      <EditTeacherPage />
     </div>
   );
 }

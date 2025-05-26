@@ -36,7 +36,7 @@ const signupSchema = z.object({
   currentClassId: z.string().optional(),
 });
 
-export default function SignupForm() {
+export default function AddForm() {
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
@@ -284,7 +284,7 @@ export default function SignupForm() {
         // setUser(response.data.user);
 
         // Redirect to protected route
-        router.push("/auth/login");
+      //router.push("/auth/login");
       }
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -312,18 +312,7 @@ export default function SignupForm() {
 
   return (
     <div className="mx-auto max-w-md rounded-lg bg-white p-8 shadow-md dark:bg-gray-800">
-      <div className="bg-gradient mb-2 rounded-[10px] p-4 dark:bg-gray-dark dark:shadow-card">
-        <div className="flex items-center justify-center  font-extrabold text-white">
-          <h1>CHIGONEKA CDSS</h1>
-        </div>
-        <div className="mt-4 flex items-center justify-center ">
-          <span className="block h-px w-full bg-stroke dark:bg-dark-3"></span>
-          <div className="block w-full min-w-fit px-2 text-center font-normal text-white dark:bg-gray-dark">
-            <h2>Signup Form</h2>
-          </div>
-          <span className="block h-px w-full bg-stroke dark:bg-dark-3"></span>
-        </div>
-      </div>
+     
       {error && (
         <div className="mb-4 rounded-lg bg-red-100 p-3 text-red-700 dark:bg-red-900 dark:text-red-100">
           {error}
@@ -402,7 +391,7 @@ export default function SignupForm() {
             className="w-full rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
           >
             <option value="">Select Role</option>
-            <option value="admin">Admin</option>
+            {/* <option value="admin">Admin</option> */}
             <option value="parent">Parent</option>
             <option value="teacher">Teacher</option>
             <option value="student">Student</option>
@@ -696,16 +685,6 @@ export default function SignupForm() {
         >
           {isSubmitting ? "Creating Account..." : "Create Account"}
         </button>
-
-        <div className="text-center text-sm text-gray-600 dark:text-gray-400">
-          Already have an account?{" "}
-          <Link
-            href="/auth/login"
-            className="font-medium text-primary hover:underline"
-          >
-            Sign In
-          </Link>
-        </div>
       </form>
     </div>
   );

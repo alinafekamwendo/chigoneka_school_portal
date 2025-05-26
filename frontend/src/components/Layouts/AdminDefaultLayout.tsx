@@ -41,10 +41,10 @@ const menuGroups = [
         label: "Teachers",
         route: "#",
         children: [
-          { label: "Add Teacher", route: "/dashboard/admin/add-admin" },
-          { label: "Manage", route: "/dashboard/admin/manage-admins" },
-          { label: "Teacher reports", route: "/dashboard/admin/parents" },
-          { label: "Assign Duties", route: "/dashboard/admin/teachers" },
+          { label: "Add Teacher", route: "/dashboard/admin/teachers/add" },
+          { label: "Manage", route: "/dashboard/admin/teachers/manage" },
+          { label: "Teacher reports", route: "/dashboard/admin/teachers/reports" },
+          { label: "Assign Duties", route: "/dashboard/admin/teachers/duties" },
         ],
       },
       {
@@ -52,8 +52,8 @@ const menuGroups = [
         label: "Parents",
         route: "#",
         children: [
-          { label: "Add Parent", route: "/dashboard/admin/admins" },
-          { label: "Manage", route: "/dashboard/admin/teachers" },
+          { label: "Add Parent", route: "/dashboard/admin/parents/add" },
+          { label: "Manage", route: "/dashboard/admin/parents" },
         ],
       },
       {
@@ -61,10 +61,10 @@ const menuGroups = [
         label: "Students",
         route: "#",
         children: [
-          { label: "Add Student", route: "/dashboard/admin/admins" },
-          { label: "Manage", route: "/dashboard/admin/teachers" },
-          { label: "Reports", route: "/dashboard/admin/parents" },
-          { label: "Promote Student", route: "/dashboard/admin/students" },
+          { label: "Add Student", route: "/dashboard/admin/students/add" },
+          { label: "Manage", route: "/dashboard/admin/students" },
+          { label: "Reports", route: "/dashboard/admin/students/reports" },
+          { label: "Promote Student", route: "/dashboard/admin/students/promote" },
         ],
       },
       {
@@ -72,11 +72,11 @@ const menuGroups = [
         label: "School",
         route: "#",
         children: [
-          { label: "General Report", route: "/dashboard/admin/admins" },
-          { label: "Finances", route: "/dashboard/admin/parents" },
-          { label: "Time Table", route: "/dashboard/admin/students" },
-          { label: "Examinations", route: "/dashboard/admin/students" },
-          { label: "Community", route: "/dashboard/admin/students" },
+          { label: "General Report", route: "/dashboard/admin/school" },
+          { label: "Finances", route: "/dashboard/admin/school/finances" },
+          { label: "Time Table", route: "/dashboard/admin/school/timetable" },
+          { label: "Examinations", route: "/dashboard/admin/school/examinations" },
+          { label: "Community", route: "/dashboard/admin/school/community" },
         ],
       },
       {
@@ -84,9 +84,9 @@ const menuGroups = [
         label: "Classes",
         route: "#",
         children: [
-          { label: "Add Class", route: "/pages/settings" },
-          { label: "Manage", route: "/dashboard/admin/examinations" },
-          { label: "Class Reports", route: "/pages/settings" },
+          { label: "Add Class", route: "/dashboard/admin/classes/add" },
+          { label: "Manage", route: "/dashboard/admin/classes/manage" },
+          { label: "Class Reports", route: "/dashboard/admin/classes/reports" },
         ],
       },
     ],
@@ -98,7 +98,7 @@ const menuGroups = [
         label: "User",
         route: "#",
         children: [
-          { label: "Profile", route: "/auth/signin" },
+          { label: "Profile", route: "/auth/login" },
           {
             label: "Logout",
             route: "/auth/logout",

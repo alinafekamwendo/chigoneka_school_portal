@@ -314,7 +314,7 @@ const MyDataTable = <T extends object>({
                               size="icon"
                               onClick={() => onView(item)}
                             >
-                              <Visibility className="h-5 w-5 text-gray-500 hover:text-indigo-600" />
+                              <Visibility className="h-5 w-5 text-green hover:text-indigo-600" />
                             </Button>
                           )}
                           {onEdit && (
@@ -323,7 +323,7 @@ const MyDataTable = <T extends object>({
                               size="icon"
                               onClick={() => onEdit(item)}
                             >
-                              <Edit className="h-5 w-5 text-gray-500 hover:text-green-600" />
+                              <Edit className="h-5 w-5 text-blue hover:text-green-600" />
                             </Button>
                           )}
                           {onDelete && (
@@ -332,7 +332,7 @@ const MyDataTable = <T extends object>({
                               size="icon"
                               onClick={() => onDelete(item)}
                             >
-                              <Delete className="h-5 w-5 text-gray-500 hover:text-red-600" />
+                              <Delete className="h-5 w-5 text-red-600 hover:text-gray-5" />
                             </Button>
                           )}
                         </>

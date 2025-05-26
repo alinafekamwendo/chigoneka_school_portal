@@ -11,7 +11,7 @@ export default function Signin() {
     <>
       <div className="bg-gradient mb-2 rounded-[10px] p-4 dark:bg-gray-dark dark:shadow-card">
         <div className="flex items-center justify-center  text-white font-extrabold">
-          <h1 >Mount Carmel of God Academy</h1>
+          <h1 >CHIGONEKA CDSS</h1>
         </div>
         <div className="mt-4 flex items-center justify-center ">
           <span className="block h-px w-full bg-stroke dark:bg-dark-3"></span>

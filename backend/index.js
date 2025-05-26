@@ -33,6 +33,7 @@ app.use(
 
 app.use(`/${apiVersion}/auth`, authRoutes);
 app.use(`/${apiVersion}/admin`, adminRoutes);
+app.use(`/${apiVersion}/teachers`, require("./routes/teacher.route.js"));
 
 // Home route
 app.get(`/${apiVersion}`, (req, res) => {

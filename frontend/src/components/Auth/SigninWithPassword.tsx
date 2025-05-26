@@ -76,7 +76,11 @@ export default function SigninWithPassword() {
   return (
     <>
       {showSuccess && (
-        <Alert severity="success">Login successful. Redirecting...</Alert>
+        <Alert
+          severity="success"
+          onClose={() => setShowSuccess(false)}>
+          Login successful. Redirecting...
+        </Alert>
       )}
 
       <form onSubmit={handleSubmit}>
@@ -166,7 +170,7 @@ export default function SigninWithPassword() {
 
         <button
           type="submit"
-          className={`w-full rounded-lg bg-primary p-4 font-medium text-white hover:bg-opacity-50 ${
+          className={`w-full rounded-lg bg-blue-900 p-4 font-medium text-white hover:bg-opacity-50 ${
             isLoading ? "cursor-not-allowed opacity-70" : ""
           }`}
           disabled={isLoading}
