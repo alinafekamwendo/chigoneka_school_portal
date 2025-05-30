@@ -5,7 +5,10 @@ import { z } from "zod";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import Compressor from "compressorjs";
-
+import { useToast } from "@/hooks/use-toast";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { title } from "process";
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -17,6 +20,7 @@ const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
   phone: z.string().min(1, "Phone number is required"),
   sex: z.enum(["MALE", "FEMALE"]),
+  dob: z.date().optional(),
   profilePhoto: z
     .instanceof(File)
     .refine(
@@ -37,13 +41,11 @@ const signupSchema = z.object({
 });
 
 export default function AddForm() {
-  const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
   >({});
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [user, setUser] = useState(null);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -55,6 +57,7 @@ export default function AddForm() {
     email: "",
     phone: "",
     sex: "",
+    dob: undefined as Date | undefined,
     profilePhoto: null as File | null,
     level: "regular",
     qualifications: [] as string[],
@@ -63,7 +66,7 @@ export default function AddForm() {
     gradeLevel: "",
     currentClassId: "",
   });
-
+const { toast } = useToast();
   const [tempQualification, setTempQualification] = useState("");
   const [tempSubject, setTempSubject] = useState("");
 
@@ -73,6 +76,15 @@ export default function AddForm() {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleDateChange = (date: Date | null) => {
+    if (date) {
+      setFormData((prev) => ({
+        ...prev,
+        dob: date,
+      }));
+    }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,10 +103,19 @@ export default function AddForm() {
             ...prev,
             profilePhoto: compressedFile,
           }));
+          toast({
+            title: "Image Compressed",
+            description: "Your profile photo has been compressed successfully.",
+          }
+          )
         },
         error(err) {
           console.error("Error compressing image:", err);
-          setError("Failed to compress the image. Please try again.");
+          toast({
+            title: "Failed to compress the image. Please try again.",
+            description: "Ensure the image is in a supported format (JPEG, PNG, WebP).",
+            variant: "destructive",
+          });
         },
       });
     }
@@ -119,6 +140,7 @@ export default function AddForm() {
       }));
       if (field === "qualifications") setTempQualification("");
       if (field === "subjects") setTempSubject("");
+      toast.success(`${field} added successfully`);
     }
   };
 
@@ -131,11 +153,12 @@ export default function AddForm() {
       newArray.splice(index, 1);
       return { ...prev, [field]: newArray };
     });
+    toast.success("Item removed successfully");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setValidationErrors({});
     setIsSubmitting(true);
 
     try {
@@ -201,91 +224,76 @@ export default function AddForm() {
       }
 
       validationData.parse(formData);
-      setValidationErrors({});
 
-     
-   const formDataToSend = new FormData();
+      const formDataToSend = new FormData();
+      const addField = (name: string, value: any) => {
+        if (value !== null && value !== undefined) {
+          formDataToSend.append(name, value);
+        }
+      };
 
-   // Add common fields - modified approach
-   const addField = (name: string, value: any) => {
-     if (value !== null && value !== undefined) {
-       formDataToSend.append(name, value);
-     }
-   };
+      // Handle common fields
+      addField("firstName", formData.firstName);
+      addField("lastName", formData.lastName);
+      addField("username", formData.username);
+      addField("role", formData.role);
+      addField("password", formData.password);
+      addField("address", formData.address);
+      addField("email", formData.email);
+      addField("phone", formData.phone);
+      addField("sex", formData.sex);
 
-   // Handle common fields
-   addField("firstName", formData.firstName);
-   addField("lastName", formData.lastName);
-   addField("username", formData.username);
-   addField("role", formData.role);
-   addField("password", formData.password);
-   addField("address", formData.address);
-   addField("email", formData.email);
-   addField("phone", formData.phone);
-   addField("sex", formData.sex);
-
-   // Handle profile photo
-   if (formData.profilePhoto) {
-     formDataToSend.append("profilePhoto", formData.profilePhoto);
-   }
-
-   // Handle role-specific fields
-   switch (formData.role) {
-     case "admin":
-       addField("level", formData.level);
-       break;
-     case "student":
-       addField("parentId", formData.parentId);
-       addField("gradeLevel", formData.gradeLevel);
-       addField("currentClassId", formData.currentClassId);
-       break;
-     case "teacher":
-       // Handle empty arrays - send empty array marker if empty
-       if (formData.qualifications.length === 0) {
-         formDataToSend.append("qualifications", "[]"); // Explicit empty array
-       } else {
-         formData.qualifications.forEach(
-           (q) => formDataToSend.append("qualifications[]", q), // Note [] bracket notation
-         );
-       }
-
-       if (formData.subjects.length === 0) {
-         formDataToSend.append("subjects", "[]");
-       } else {
-         formData.subjects.forEach((s) =>
-           formDataToSend.append("subjects[]", s),
-         );
-       }
-       break;
-   }
-
-   // PROPER way to inspect FormData
-   console.log("FormData contents:");
-   for (const [key, value] of formDataToSend.entries()) {
-     console.log(key, value);
-   }
-
-   const response = await axios.post(
-     "http://localhost:5000/api/v1/auth/signup",
-     formDataToSend,
-     {
-       headers: {
-         "Content-Type": "multipart/form-data",
-       },
-       transformRequest: (data) => data, // Important for FormData
-     },
-   );
-
-      if (response.data) {
-        // // Store only the token in localStorage
-        // localStorage.setItem("token", response.data.token);
-
-        // // Set user in context
-        // setUser(response.data.user);
-
-        // Redirect to protected route
-      //router.push("/auth/login");
+      // Handle date of birth
+      if (formData.dob) {
+        addField("dob", formData.dob.toISOString());
       }
+
+      // Handle profile photo
+      if (formData.profilePhoto) {
+        formDataToSend.append("profilePhoto", formData.profilePhoto);
+      }
+
+      // Handle role-specific fields
+      switch (formData.role) {
+        case "admin":
+          addField("level", formData.level);
+          break;
+        case "student":
+          addField("parentId", formData.parentId);
+          addField("gradeLevel", formData.gradeLevel);
+          addField("currentClassId", formData.currentClassId);
+          break;
+        case "teacher":
+          if (formData.qualifications.length === 0) {
+            formDataToSend.append("qualifications", "[]");
+          } else {
+            formData.qualifications.forEach((q) =>
+              formDataToSend.append("qualifications[]", q),
+            );
+          }
+          if (formData.subjects.length === 0) {
+            formDataToSend.append("subjects", "[]");
+          } else {
+            formData.subjects.forEach((s) =>
+              formDataToSend.append("subjects[]", s),
+            );
+          }
+          break;
+      }
+
+      const response = await axios.post(
+        "http://localhost:5000/api/v1/auth/signup",
+        formDataToSend,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          transformRequest: (data) => data,
+        },
+      );
+
+      toast.success("Account created successfully!");
+      router.push("/auth/login");
     } catch (err) {
       if (err instanceof z.ZodError) {
         const errors = err.errors.reduce(
@@ -296,6 +304,7 @@ export default function AddForm() {
           {} as Record<string, string>,
         );
         setValidationErrors(errors);
+        toast.error("Please fix the form errors");
       } else {
         let errorMessage = "Signup failed. Please try again.";
         if (axios.isAxiosError(err)) {
@@ -303,7 +312,7 @@ export default function AddForm() {
         } else if (err instanceof Error) {
           errorMessage = err.message;
         }
-        setError(errorMessage);
+        toast.error(errorMessage);
       }
     } finally {
       setIsSubmitting(false);
@@ -312,13 +321,6 @@ export default function AddForm() {
 
   return (
     <div className="mx-auto max-w-md rounded-lg bg-white p-8 shadow-md dark:bg-gray-800">
-     
-      {error && (
-        <div className="mb-4 rounded-lg bg-red-100 p-3 text-red-700 dark:bg-red-900 dark:text-red-100">
-          {error}
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Common Fields */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -391,7 +393,6 @@ export default function AddForm() {
             className="w-full rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
           >
             <option value="">Select Role</option>
-            {/* <option value="admin">Admin</option> */}
             <option value="parent">Parent</option>
             <option value="teacher">Teacher</option>
             <option value="student">Student</option>
@@ -476,6 +477,31 @@ export default function AddForm() {
           </select>
           {validationErrors.sex && (
             <p className="mt-1 text-sm text-red-500">{validationErrors.sex}</p>
+          )}
+        </div>
+
+        {/* Date of Birth */}
+        <div>
+          <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
+            Date of Birth
+          </label>
+          <DatePicker
+            selected={formData.dob}
+            onChange={handleDateChange}
+            dateFormat="MMMM d, yyyy"
+            placeholderText="Select date of birth"
+            className="w-full rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
+            showYearDropdown
+            scrollableYearDropdown
+            yearDropdownItemNumber={100}
+            dropdownMode="select"
+            minDate={new Date(1900, 0, 1)}
+            maxDate={
+              new Date(new Date().setFullYear(new Date().getFullYear() - 18))
+            }
+          />
+          {validationErrors.dob && (
+            <p className="mt-1 text-sm text-red-500">{validationErrors.dob}</p>
           )}
         </div>
 
@@ -683,7 +709,28 @@ export default function AddForm() {
           disabled={isSubmitting}
           className="w-full rounded-lg bg-blue-900 px-4 py-3 font-medium text-white transition hover:bg-opacity-90 disabled:opacity-70"
         >
-          {isSubmitting ? "Creating Account..." : "Create Account"}
+          {isSubmitting ? (
+            <span className="flex items-center justify-center">
+              <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Creating Account...
+            </span>
+          ) : (
+            "Create Account"
+          )}
         </button>
       </form>
     </div>

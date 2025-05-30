@@ -1,11 +1,17 @@
+const { DataTypes } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   const Teacher = sequelize.define(
     "Teacher",
     {
       id: {
         type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
+        primaryKey: true, // Remove defaultValue since it will come from User
+      },
+      staffNumber: {
+        type: DataTypes.STRING,
+        unique: true,
+        allowNull: false,
+        defaultValue: () => `STAF${Math.floor(1000 + Math.random() * 9000)}`, // Generates like STAF1234
       },
       qualifications: {
         type: DataTypes.ARRAY(DataTypes.STRING),
@@ -14,15 +20,6 @@ module.exports = (sequelize, DataTypes) => {
       subjects: {
         type: DataTypes.ARRAY(DataTypes.STRING),
         allowNull: true,
-      },
-      userId: {
-        type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-          model: "users", // Table name
-          key: "id",
-        },
-        onDelete: "CASCADE", // Add this
       },
     },
     {
@@ -33,15 +30,16 @@ module.exports = (sequelize, DataTypes) => {
 
   Teacher.associate = (models) => {
     Teacher.belongsTo(models.User, {
-      foreignKey: "userId",
+      foreignKey: "id",
       as: "user",
-      onDelete: "CASCADE", // Add this
+      onDelete: "CASCADE",
     });
     Teacher.hasMany(models.Lesson, {
       foreignKey: "teacherId",
       as: "lessons",
       onDelete: "CASCADE", // Add this
     });
+    // ... rest of your associations
   };
 
   return Teacher;

@@ -108,7 +108,7 @@ export default function AdminEditPage() {
               : "Failed to fetch admin details",
           variant: "destructive",
         });
-        router.push("/dashboard/admin/admins");
+        router.push("/dashboard/admin/admins/manage");
       } finally {
         setLoading(false);
       }

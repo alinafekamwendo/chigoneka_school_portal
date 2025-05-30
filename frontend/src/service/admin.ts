@@ -6,6 +6,9 @@ interface Admin {
   id: string;
   userId: string;
   level: "regular" | "super";
+  adminNumber: string;
+  profilePhoto?: string | null;
+  dob?: string | null;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -42,6 +45,9 @@ interface UpdateAdminData {
   sex?: "MALE" | "FEMOTE";
   address?: string;
   level?: "regular" | "super";
+  profilePhoto?: string | null;
+  dob?: string | null;
+  adminNumber?: string;
 }
 
 const adminService = {

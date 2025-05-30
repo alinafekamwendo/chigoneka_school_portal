@@ -12,7 +12,12 @@ import { CalendarDays, Mail, Phone, MapPin, User } from "lucide-react";
 interface Admin {
   id: string;
   userId: string;
+  admin: {
+    level: "regular" | "super";
+    adminNumber?: string;
+  };
   level: "regular" | "super";
+  adminNumber?: string;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -199,10 +204,18 @@ export default function AdminProfilePage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">
+                      Admin Number:
+                    </h3>
+                    <p className="mt-1 text-lg font-medium">
+                      {admin.admin.adminNumber || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">
                       Admin Level
                     </h3>
                     <p className="mt-1 text-lg font-medium capitalize">
-                      {admin.level === "super"
+                      {admin.admin.level === "super"
                         ? "Super Admin"
                         : "Regular Admin"}
                     </p>

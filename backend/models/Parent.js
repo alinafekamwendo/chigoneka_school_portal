@@ -1,19 +1,17 @@
+
 module.exports = (sequelize, DataTypes) => {
   const Parent = sequelize.define(
     "Parent",
     {
       id: {
         type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
       },
-      userId: {
-        type: DataTypes.UUID,
-        references: {
-          model: "users", // Table name
-          key: "id",
-        },
-        onDelete: "CASCADE", // Add this
+      parentNumber: {
+        type: DataTypes.STRING,
+        unique: true,
+        allowNull: false,
+        defaultValue: () => `PAR${Math.floor(1000 + Math.random() * 9000)}`, // Generates like PAR1234
       },
     },
     {
@@ -24,15 +22,16 @@ module.exports = (sequelize, DataTypes) => {
 
   Parent.associate = (models) => {
     Parent.belongsTo(models.User, {
-      foreignKey: "userId",
+      foreignKey: "id",
       as: "user",
-      onDelete: "CASCADE", // Add this
+      onDelete: "CASCADE",
     });
     Parent.hasMany(models.Student, {
       foreignKey: "parentId",
       as: "students",
       onDelete: "CASCADE", // Add this
     });
+    // ... rest of your associations
   };
 
   return Parent;

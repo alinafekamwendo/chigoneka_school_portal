@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Column<T extends object> {
   key: keyof T;
@@ -145,7 +146,7 @@ const MyDataTable = <T extends object>({
 
   return (
     <div
-      className={ cn("rounded-lg border border-gray-200 shadow-md", className)}
+      className={cn("rounded-lg border border-gray-200 shadow-md", className)}
     >
       {/* Search and Filters */}
       <div className="flex flex-col items-start justify-between gap-4 p-4 sm:flex-row sm:items-center">

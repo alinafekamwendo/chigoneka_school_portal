@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { z } from "zod";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -11,6 +11,8 @@ import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useAuth } from "@/service/authContext";
+import { useToast } from "@/hooks/use-toast";
+import { title } from "process";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -28,10 +30,12 @@ export default function SigninWithPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login ,user} = useAuth();
+  const { login, user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
+  const { toast
+} = useToast();
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,14 +64,24 @@ export default function SigninWithPassword() {
 
     // Use context login
     try {
-      await login({ email, password }); // assumes username = email
+      await login({ email, password });
+      toast({
+        title: "Login successful",
+        description:  "Successfully logged in.",
+      });
+      // assumes username = email
       setShowSuccess(true);
       setTimeout(() => {
         router.push(redirect || "/");
         setShowSuccess(false);
-      }, 1000);
+      }, 3000);
     } catch (err: any) {
       setError("Login failed. Please check your credentials.");
+      toast({
+        title: "Error",
+        description: err.message || "Something went wrong.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }

@@ -2,23 +2,27 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import ClickOutside from "@/components/ClickOutside";
-import { log } from "console";
+
 import { logout } from "@/service/authService";
+
 
 const DropdownUser = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [avatar, setAvatar] = useState("");
+  
+  
 
   // Use useEffect to set the username when the component mounts
   useEffect(() => {
     const user = localStorage.getItem("user");
     if (user) {
-      const parsedUser = JSON.parse(user);
-      setUsername(parsedUser.username);
-      setEmail(parsedUser.email);
-      setAvatar(parsedUser.profilePhoto);
+      // const parsedUser = JSON.parse(user);
+      // setUsername(parsedUser.username);
+      // setEmail(parsedUser.email);
+      // setAvatar(parsedUser.profilePhoto);
+  
     }
   }, []); // Empty dependency array ensures this runs only once on mount
 

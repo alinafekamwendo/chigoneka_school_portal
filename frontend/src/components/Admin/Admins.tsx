@@ -6,6 +6,7 @@ import adminService from "@/service/admin";
 import MyDataTable from "@/components/Tables/MyDataTable";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
+import DataTable from "@/components/Tables/Custom/DataTable";
 
 interface Admin {
   id: string;
@@ -35,6 +36,7 @@ const AdminsPage = () => {
   const router = useRouter();
   const { toast } = useToast();
 
+
   const fetchAdmins = async () => {
     try {
       const token = localStorage.getItem("access_token");
@@ -42,6 +44,7 @@ const AdminsPage = () => {
 
       const adminsData = await adminService.getAllAdmins(token);
       setAdmins(adminsData);
+     
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch admins");
     } finally {
@@ -53,12 +56,13 @@ const AdminsPage = () => {
     fetchAdmins();
   }, []);
 
+ 
   const handleView = (item: any) => {
-    router.push(`/dashboard/admin/admins/view/${item.rawData.userId}`);
+    router.push(`/dashboard/admin/admins/view/${item.rawData.id}`);
   };
 
   const handleEdit = (item: any) => {
-    router.push(`/dashboard/admin/admins/edit/${item.rawData.userId}`);
+    router.push(`/dashboard/admin/admins/edit/${item.rawData.id}`);
   };
 
   const handleDelete = async (item: any) => {
@@ -122,6 +126,7 @@ const AdminsPage = () => {
             isFilterable: true,
             filterType: "select",
             filterOptions: ["Super Admin", "Regular Admin"],
+            
           },
           {
             key: "createdAt",
@@ -134,6 +139,7 @@ const AdminsPage = () => {
         onDelete={handleDelete}
         className="h-full w-full"
       />
+   <DataTable />
     </div>
   );
 };

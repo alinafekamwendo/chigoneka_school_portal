@@ -4,17 +4,13 @@ module.exports = (sequelize, DataTypes) => {
     {
       id: {
         type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
       },
-      userId: {
-        type: DataTypes.UUID,
+      adminNumber: {
+        type: DataTypes.STRING,
+        unique: true,
         allowNull: false,
-        references: {
-          model: "users", // Table name
-          key: "id",
-        },
-        onDelete: "CASCADE", // Add this
+        defaultValue: () => `ADM${Math.floor(1000 + Math.random() * 9000)}`, // Generates like ADM1234
       },
       level: {
         type: DataTypes.ENUM("regular", "super"),
@@ -23,17 +19,16 @@ module.exports = (sequelize, DataTypes) => {
       },
     },
     {
-      paranoid: true, // Maintains soft delete consistency with User
-      tableName: "admins", // Explicit table name
+      paranoid: true,
+      tableName: "admins",
     }
   );
 
-  // Define the association with User
-  Admin.associate = function (models) {
+  Admin.associate = (models) => {
     Admin.belongsTo(models.User, {
-      foreignKey: "userId",
+      foreignKey: "id",
       as: "user",
-      onDelete: "CASCADE", // Add this
+      onDelete: "CASCADE",
     });
   };
 

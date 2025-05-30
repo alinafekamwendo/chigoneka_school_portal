@@ -61,7 +61,7 @@ const ViewTeacherPage = () => {
     <div className="mx-auto max-w-4xl p-4">
       <div className="mb-6 flex items-start justify-between">
         <h1 className="text-2xl font-bold">Teacher Profile</h1>
-        <Button onClick={() => router.push(`/dashboard/teachers/edit/${id}`)}>
+        <Button onClick={() => router.push(`/dashboard/admin/teachers/edit/${id}`)}>
           Edit Profile
         </Button>
       </div>

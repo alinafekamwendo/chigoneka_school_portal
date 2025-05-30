@@ -1,3 +1,4 @@
+const { DataTypes } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   const User = sequelize.define(
     "User",
@@ -57,30 +58,36 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
+      isActive: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+      },
+      // ... (rest of your existing User fields remain the same)
     },
     {
-      paranoid: true, // Enables soft deletes
-      tableName: "users", // Explicit table name
+      paranoid: true,
+      tableName: "users",
     }
   );
+
   User.associate = (models) => {
     User.hasOne(models.Teacher, {
-      foreignKey: "userId",
+      foreignKey: "id", // Changed from userId to id to share same ID
       as: "teacher",
       onDelete: "CASCADE",
     });
     User.hasOne(models.Parent, {
-      foreignKey: "userId",
+      foreignKey: "id", // Changed from userId to id
       as: "parent",
       onDelete: "CASCADE",
     });
     User.hasOne(models.Student, {
-      foreignKey: "userId",
+      foreignKey: "id", // Changed from userId to id
       as: "student",
       onDelete: "CASCADE",
     });
     User.hasOne(models.Admin, {
-      foreignKey: "userId",
+      foreignKey: "id", // Changed from userId to id
       as: "admin",
       onDelete: "CASCADE",
     });

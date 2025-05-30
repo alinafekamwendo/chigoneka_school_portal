@@ -1,4 +1,4 @@
-const { User, Teacher, Parent, Student, Admin } = require("../models"); // Import Admin model
+const { User, Teacher, Parent, Student, Admin } = require("../models");
 const { Op } = require("sequelize");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -7,53 +7,39 @@ const path = require("path");
 const fs = require("fs");
 const Joi = require("joi");
 const { sequelize } = require("../models");
-const { get } = require("http");
+const cookie = require("cookie");
 
-
-//for token generation
-// Add these at the top with other requires
-const cookie = require('cookie');
-
-// Update token generation function
-// Add these at the top of your auth controller
+// Token generation functions (unchanged)
 const generateAccessToken = (user) => {
-  return jwt.sign(
-    { id: user.id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: '30m' } // Short expiration for access token
-  );
+  return jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
+    expiresIn: "30m",
+  });
 };
 
 const generateRefreshToken = (user) => {
-  return jwt.sign(
-    { id: user.id },
-    process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn: '7d' } // Longer expiration for refresh token
-  );
+  return jwt.sign({ id: user.id }, process.env.REFRESH_TOKEN_SECRET, {
+    expiresIn: "7d",
+  });
 };
-// Add this new endpoint for token refresh
+
+// Refresh token endpoint (unchanged)
 const refreshToken = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
-
     if (!refreshToken) {
       return res.status(401).json({
         error: "Refresh token required",
-        shouldLogout: true, // Flag to tell client to logout
+        shouldLogout: true,
       });
     }
 
-    // Verify refresh token
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-
-    // Check if user exists
     const user = await User.findOne({
       where: { id: decoded.id },
       attributes: ["id", "role"],
     });
 
     if (!user) {
-      // Clear invalid refresh token
       res.clearCookie("refreshToken");
       return res.status(403).json({
         error: "Invalid refresh token",
@@ -61,28 +47,23 @@ const refreshToken = async (req, res) => {
       });
     }
 
-    // Generate new tokens
     const newAccessToken = generateAccessToken(user);
     const newRefreshToken = generateRefreshToken(user);
 
-    // Set new refresh token in HTTP-only cookie
     res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.json({
       token: newAccessToken,
-      expiresIn: 15 * 60 * 1000, // Tell client when token will expire (15 minutes)
+      expiresIn: 15 * 60 * 1000,
     });
   } catch (error) {
     console.error("Refresh token error:", error);
-
-    // Clear invalid refresh token
     res.clearCookie("refreshToken");
-
     if (error.name === "TokenExpiredError") {
       return res.status(403).json({
         error: "Refresh token expired",
@@ -96,18 +77,43 @@ const refreshToken = async (req, res) => {
   }
 };
 
-// Update login function
+// Updated login function to include role numbers
 const loginUser = async (req, res) => {
-  
   try {
     const { email, password } = req.body;
     if (!email || !password || email === "" || password === "") {
       return res.status(400).json({ error: "All fields are required" });
     }
-    
+
     const user = await User.findOne({
       where: { email },
       attributes: { exclude: ["deletedAt"] },
+      include: [
+        {
+          model: Teacher,
+          as: "teacher",
+          required: false,
+          attributes: ["staffNumber", "qualifications", "subjects"],
+        },
+        {
+          model: Parent,
+          as: "parent",
+          required: false,
+          attributes: ["parentNumber"],
+        },
+        {
+          model: Student,
+          as: "student",
+          required: false,
+          attributes: ["studentNumber"],
+        },
+        {
+          model: Admin,
+          as: "admin",
+          required: false,
+          attributes: ["adminNumber", "level"],
+        },
+      ],
     });
 
     if (!user) {
@@ -115,7 +121,6 @@ const loginUser = async (req, res) => {
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Invalid password" });
     }
@@ -124,19 +129,22 @@ const loginUser = async (req, res) => {
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    // Set refresh token in HTTP-only cookie
-    res.setHeader('Set-Cookie', cookie.serialize('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
-      path: '/'
-    }));
+    res.setHeader(
+      "Set-Cookie",
+      cookie.serialize("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60,
+        path: "/",
+      })
+    );
 
     const profilePhotoUrl = user.profilePhoto
       ? `${req.protocol}://${req.get("host")}${user.profilePhoto}`
       : null;
 
+    // Build response with role-specific number
     const responseData = {
       user: {
         id: user.id,
@@ -149,15 +157,23 @@ const loginUser = async (req, res) => {
       token: accessToken,
     };
 
-    if (user.role === "admin") {
-      const admin = await Admin.findOne({ where: { userId: user.id } });
-      responseData.user.level = admin.level;
-    }
-
-    if (user.role === "teacher" && user.teacher) {
-      const teacher = await Teacher.findOne({ where: { userId: user.id } });
-      responseData.user.qualifications = teacher.qualifications;
-      responseData.user.subjects = teacher.subjects;
+    // Add role-specific number to response
+    switch (user.role) {
+      case "teacher":
+        responseData.user.staffNumber = user.teacher?.staffNumber;
+        responseData.user.qualifications = user.teacher?.qualifications;
+        responseData.user.subjects = user.teacher?.subjects;
+        break;
+      case "parent":
+        responseData.user.parentNumber = user.parent?.parentNumber;
+        break;
+      case "student":
+        responseData.user.studentNumber = user.student?.studentNumber;
+        break;
+      case "admin":
+        responseData.user.adminNumber = user.admin?.adminNumber;
+        responseData.user.level = user.admin?.level;
+        break;
     }
 
     res.status(200).json(responseData);
@@ -167,18 +183,19 @@ const loginUser = async (req, res) => {
   }
 };
 
-// Update logout function
+// Logout function (unchanged)
 const logout = async (req, res) => {
   try {
-    // Clear refresh token cookie
-    res.setHeader('Set-Cookie', cookie.serialize('refreshToken', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      expires: new Date(0),
-      path: '/'
-    }));
-
+    res.setHeader(
+      "Set-Cookie",
+      cookie.serialize("refreshToken", "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        expires: new Date(0),
+        path: "/",
+      })
+    );
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.error("Error during logout:", error);
@@ -186,9 +203,7 @@ const logout = async (req, res) => {
   }
 };
 
-
-
-// Configure Multer storage (unchanged)
+// Multer configuration (unchanged)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = path.join(__dirname, "../uploads/profilephoto");
@@ -207,7 +222,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Helper function to generate JWT token (unchanged)
+// Token generation (unchanged)
 const generateToken = (user) => {
   return jwt.sign(
     { username: user.username, id: user.id, role: user.role },
@@ -216,7 +231,7 @@ const generateToken = (user) => {
   );
 };
 
-// Validation schema for user creation (updated with admin level)
+// Validation schemas (unchanged)
 const userSchema = Joi.object({
   firstName: Joi.string().required().messages({
     "any.required": "First name is required",
@@ -261,7 +276,6 @@ const userSchema = Joi.object({
   }),
 });
 
-// Extended validation for specific roles
 const teacherSchema = Joi.object({
   qualifications: Joi.array().items(Joi.string()).optional(),
   subjects: Joi.array().items(Joi.string()).optional(),
@@ -278,10 +292,8 @@ const adminSchema = Joi.object({
   level: Joi.string().valid("regular", "super").default("regular"),
 });
 
-// Create a new user with role-specific data (updated with admin creation)
+// Updated createUser function to handle shared IDs
 const createUser = async (req, res) => {
-  const nw = req.body;
-  console.log(nw);
   try {
     upload.single("profilePhoto")(req, res, async (err) => {
       if (err) {
@@ -302,10 +314,10 @@ const createUser = async (req, res) => {
         subjects,
         parentId,
         alte_guardian_Id,
-        level, // Admin specific field
+        level,
       } = req.body;
 
-      // Validate the input data
+      // Validate input data (unchanged)
       const { error } = userSchema.validate(
         {
           firstName,
@@ -326,7 +338,6 @@ const createUser = async (req, res) => {
         return res.status(400).json({ errors });
       }
 
-      // Validate role-specific data
       let roleValidationError;
       switch (role.toLowerCase()) {
         case "teacher":
@@ -336,12 +347,7 @@ const createUser = async (req, res) => {
           }).error;
           break;
         case "student":
-          roleValidationError = studentSchema.validate({
-            parentId,
-          }).error;
-          break;
-        case "parent":
-          roleValidationError = parentSchema.validate({}).error;
+          roleValidationError = studentSchema.validate({ parentId }).error;
           break;
         case "admin":
           roleValidationError = adminSchema.validate({ level }).error;
@@ -355,7 +361,6 @@ const createUser = async (req, res) => {
         return res.status(400).json({ errors });
       }
 
-      // Check if username, email, or phone already exists
       const existingUser = await User.findOne({
         where: {
           [Op.or]: [{ username }, { email }, { phone }],
@@ -364,31 +369,23 @@ const createUser = async (req, res) => {
 
       if (existingUser) {
         const errors = [];
-        if (existingUser.username === username) {
+        if (existingUser.username === username)
           errors.push("Username already exists");
-        }
-        if (existingUser.email === email) {
-          errors.push("Email already exists");
-        }
-        if (existingUser.phone === phone) {
+        if (existingUser.email === email) errors.push("Email already exists");
+        if (existingUser.phone === phone)
           errors.push("Phone number already exists");
-        }
         return res.status(400).json({ errors });
       }
 
-      // Hash the password
       const hashedPassword = await bcrypt.hash(password, 10);
-
       const lowerCaseRole = role.toLowerCase();
       const upperCaseSex = sex.toUpperCase();
 
-      // Construct profile picture URL if file is uploaded
       let profilePhotoUrl = null;
       if (req.file) {
         profilePhotoUrl = `/uploads/profilephotos/${req.file.filename}`;
       }
 
-      // Start a transaction to ensure data consistency
       const transaction = await sequelize.transaction();
 
       try {
@@ -409,12 +406,12 @@ const createUser = async (req, res) => {
           { transaction }
         );
 
-        // Create role-specific records
+        // Create role-specific record with same ID
         switch (lowerCaseRole) {
           case "teacher":
             await Teacher.create(
               {
-                userId: user.id,
+                id: user.id, // Using same ID as user
                 qualifications: qualifications || [],
                 subjects: subjects || [],
               },
@@ -424,32 +421,30 @@ const createUser = async (req, res) => {
           case "parent":
             await Parent.create(
               {
-                userId: user.id,
+                id: user.id, // Using same ID as user
               },
               { transaction }
             );
             break;
           case "student":
             const parent = await Parent.findByPk(parentId, { transaction });
-            if (parent) {
-              await Student.create(
-                {
-                  userId: user.id,
-                  parentId,
-                  alte_guardian_Id: alte_guardian_Id || null,
-                  scores: [],
-                },
-                { transaction }
-              );
-            } else {
-              res.status(400).json({ error: "Parent not found" });
-              return;
+            if (!parent) {
+              await transaction.rollback();
+              return res.status(400).json({ error: "Parent not found" });
             }
+            await Student.create(
+              {
+                id: user.id, // Using same ID as user
+                parentId,
+                alte_guardian_Id: alte_guardian_Id || null,
+              },
+              { transaction }
+            );
             break;
           case "admin":
             await Admin.create(
               {
-                userId: user.id,
+                id: user.id, // Using same ID as user
                 level: level || "regular",
               },
               { transaction }
@@ -457,15 +452,71 @@ const createUser = async (req, res) => {
             break;
         }
 
-        // Commit the transaction
         await transaction.commit();
 
-        // Generate a token for the new user
+        // Fetch the newly created user with role data
+        const newUser = await User.findByPk(user.id, {
+          attributes: { exclude: ["password"] },
+          include: [
+            {
+              model: Teacher,
+              as: "teacher",
+              required: false,
+              attributes: ["staffNumber"],
+            },
+            {
+              model: Parent,
+              as: "parent",
+              required: false,
+              attributes: ["parentNumber"],
+            },
+            {
+              model: Student,
+              as: "student",
+              required: false,
+              attributes: ["studentNumber"],
+            },
+            {
+              model: Admin,
+              as: "admin",
+              required: false,
+              attributes: ["adminNumber", "level"],
+            },
+          ],
+        });
+
         const token = generateToken(user);
 
-        res.status(200).json({ user, token });
+        // Add role number to response
+        const responseData = {
+          user: {
+            id: newUser.id,
+            username: newUser.username,
+            email: newUser.email,
+            role: newUser.role,
+            profilePhoto: newUser.profilePhoto,
+          },
+          token,
+        };
+
+        switch (newUser.role) {
+          case "teacher":
+            responseData.user.staffNumber = newUser.teacher?.staffNumber;
+            break;
+          case "parent":
+            responseData.user.parentNumber = newUser.parent?.parentNumber;
+            break;
+          case "student":
+            responseData.user.studentNumber = newUser.student?.studentNumber;
+            break;
+          case "admin":
+            responseData.user.adminNumber = newUser.admin?.adminNumber;
+            responseData.user.level = newUser.admin?.level;
+            break;
+        }
+
+        res.status(200).json(responseData);
       } catch (error) {
-        // Rollback the transaction if any error occurs
         await transaction.rollback();
         throw error;
       }
@@ -478,22 +529,7 @@ const createUser = async (req, res) => {
   }
 };
 
-// Get all users with their role-specific data (updated with admin)
-const getAllUsers = async (req, res) => {
-  try {
-    const users = await User.findAll({
-      attributes: { exclude: ["password", "deletedAt"] },
-      paranoid: true,
-    });
-
-    res.status(200).json(users);
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    res.status(500).json({ error: "Failed to fetch users" });
-  }
-};
-
-// Get current user based on JWT token
+// Updated getCurrentUser to include role numbers
 const getCurrentUser = async (req, res) => {
   try {
     const user = req.user;
@@ -501,41 +537,60 @@ const getCurrentUser = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Base query configuration
-    const baseQuery = {
-      where: { id: user.id },
-      attributes: { exclude: ["password", "deletedAt"] },
-    };
-
-    // Determine which role-specific model to include based on the user's role
-    let include = [];
+    const include = [];
     switch (user.role) {
       case "teacher":
-        include.push({ model: Teacher, as: "teacher" });
+        include.push({
+          model: Teacher,
+          as: "teacher",
+          attributes: ["staffNumber", "qualifications", "subjects"],
+        });
         break;
       case "parent":
-        include.push({ model: Parent, as: "parent" });
+        include.push({
+          model: Parent,
+          as: "parent",
+          attributes: ["parentNumber"],
+        });
         break;
       case "student":
         include.push({
           model: Student,
           as: "student",
-          include: [{ model: Parent, as: "parent" }],
+          attributes: ["studentNumber"],
+          include: [
+            {
+              model: Parent,
+              as: "parent",
+              attributes: ["parentNumber"],
+            },
+          ],
         });
         break;
       case "admin":
-        include.push({ model: Admin, as: "admin" });
+        include.push({
+          model: Admin,
+          as: "admin",
+          attributes: ["adminNumber", "level"],
+        });
         break;
     }
 
-    // Fetch user with only the relevant role data
     const fullUser = await User.findOne({
-      ...baseQuery,
+      where: { id: user.id },
+      attributes: { exclude: ["password", "deletedAt"] },
       include: include.length ? include : undefined,
     });
 
     if (!fullUser) {
       return res.status(404).json({ error: "User not found" });
+    }
+
+    // Add profile photo URL if exists
+    if (fullUser.profilePhoto) {
+      fullUser.profilePhoto = `${req.protocol}://${req.get("host")}${
+        fullUser.profilePhoto
+      }`;
     }
 
     res.status(200).json(fullUser);
@@ -545,7 +600,7 @@ const getCurrentUser = async (req, res) => {
   }
 };
 
-// Get a user by ID with role-specific data (updated with admin)
+// Updated getUserById to include role numbers
 const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -556,20 +611,24 @@ const getUserById = async (req, res) => {
           model: Teacher,
           as: "teacher",
           required: false,
+          attributes: ["staffNumber", "qualifications", "subjects"],
         },
         {
           model: Parent,
           as: "parent",
           required: false,
+          attributes: ["parentNumber"],
         },
         {
           model: Student,
           as: "student",
           required: false,
+          attributes: ["studentNumber"],
           include: [
             {
               model: Parent,
               as: "parent",
+              attributes: ["parentNumber"],
             },
           ],
         },
@@ -577,12 +636,20 @@ const getUserById = async (req, res) => {
           model: Admin,
           as: "admin",
           required: false,
+          attributes: ["adminNumber", "level"],
         },
       ],
     });
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
+    }
+
+    // Add profile photo URL if exists
+    if (user.profilePhoto) {
+      user.profilePhoto = `${req.protocol}://${req.get("host")}${
+        user.profilePhoto
+      }`;
     }
 
     res.status(200).json(user);
@@ -592,7 +659,7 @@ const getUserById = async (req, res) => {
   }
 };
 
-// Update a user and their role-specific data (updated with admin)
+// Updated updateUser function
 const updateUser = async (req, res) => {
   try {
     upload.single("profilePhoto")(req, res, async (err) => {
@@ -614,7 +681,7 @@ const updateUser = async (req, res) => {
         subjects,
         parentId,
         alte_guardian_Id,
-        level, // Admin specific field
+        level,
       } = req.body;
 
       const transaction = await sequelize.transaction();
@@ -637,7 +704,6 @@ const updateUser = async (req, res) => {
 
         // Handle profile picture update
         if (req.file) {
-          // Delete the old profile picture if exists
           if (user.profilePhoto) {
             const oldPhotoPath = path.join(__dirname, "..", user.profilePhoto);
             if (fs.existsSync(oldPhotoPath)) {
@@ -662,7 +728,7 @@ const updateUser = async (req, res) => {
                   subjects: subjects || [],
                 },
                 {
-                  where: { userId: id },
+                  where: { id }, // Now using id directly instead of userId
                   transaction,
                 }
               );
@@ -676,7 +742,7 @@ const updateUser = async (req, res) => {
                   alte_guardian_Id: alte_guardian_Id || null,
                 },
                 {
-                  where: { userId: id },
+                  where: { id }, // Now using id directly
                   transaction,
                 }
               );
@@ -689,7 +755,7 @@ const updateUser = async (req, res) => {
                   level,
                 },
                 {
-                  where: { id },
+                  where: { id }, // Now using id directly
                   transaction,
                 }
               );
@@ -699,6 +765,7 @@ const updateUser = async (req, res) => {
 
         await transaction.commit();
 
+        // Fetch updated user with role data
         const updatedUser = await User.findByPk(id, {
           attributes: { exclude: ["password", "deletedAt"] },
           include: [
@@ -706,24 +773,35 @@ const updateUser = async (req, res) => {
               model: Teacher,
               as: "teacher",
               required: false,
+              attributes: ["staffNumber"],
             },
             {
               model: Parent,
               as: "parent",
               required: false,
+              attributes: ["parentNumber"],
             },
             {
               model: Student,
               as: "student",
               required: false,
+              attributes: ["studentNumber"],
             },
             {
               model: Admin,
               as: "admin",
               required: false,
+              attributes: ["adminNumber", "level"],
             },
           ],
         });
+
+        // Add profile photo URL if exists
+        if (updatedUser.profilePhoto) {
+          updatedUser.profilePhoto = `${req.protocol}://${req.get("host")}${
+            updatedUser.profilePhoto
+          }`;
+        }
 
         res.status(200).json(updatedUser);
       } catch (error) {
@@ -749,11 +827,10 @@ const serveProfilePhoto = async (req, res) => {
   }
 };
 
-// Soft delete a user and their role-specific data (updated with admin)
+// Updated deleteUser function
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-
     const transaction = await sequelize.transaction();
 
     try {
@@ -767,25 +844,25 @@ const deleteUser = async (req, res) => {
       switch (user.role) {
         case "teacher":
           await Teacher.destroy({
-            where: { userId: id },
+            where: { id }, // Now using id directly
             transaction,
           });
           break;
         case "parent":
           await Parent.destroy({
-            where: { userId: id },
+            where: { id }, // Now using id directly
             transaction,
           });
           break;
         case "student":
           await Student.destroy({
-            where: { userId: id },
+            where: { id }, // Now using id directly
             transaction,
           });
           break;
         case "admin":
           await Admin.destroy({
-            where: { id },
+            where: { id }, // Now using id directly
             transaction,
           });
           break;
@@ -795,7 +872,6 @@ const deleteUser = async (req, res) => {
       await user.destroy({ transaction });
 
       await transaction.commit();
-
       res.status(200).json({ message: "User deleted successfully" });
     } catch (error) {
       await transaction.rollback();
@@ -807,11 +883,10 @@ const deleteUser = async (req, res) => {
   }
 };
 
-// Restore a soft-deleted user and their role-specific data (updated with admin)
+// Updated restoreUser function
 const restoreUser = async (req, res) => {
   try {
     const { id } = req.params;
-
     const transaction = await sequelize.transaction();
 
     try {
@@ -833,35 +908,33 @@ const restoreUser = async (req, res) => {
       switch (user.role) {
         case "teacher":
           await Teacher.restore({
-            where: { userId: id },
+            where: { id }, // Now using id directly
             transaction,
           });
           break;
         case "parent":
           await Parent.restore({
-            where: { userId: id },
+            where: { id }, // Now using id directly
             transaction,
           });
           break;
         case "student":
           await Student.restore({
-            where: { userId: id },
+            where: { id }, // Now using id directly
             transaction,
           });
           break;
         case "admin":
           await Admin.restore({
-            where: { id },
+            where: { id }, // Now using id directly
             transaction,
           });
           break;
       }
 
       await transaction.commit();
-
       res.status(200).json({ message: "User restored successfully" });
     } catch (error) {
-      res.status(500).json({ message: "Error rolling back...." });
       await transaction.rollback();
       throw error;
     }
@@ -871,65 +944,20 @@ const restoreUser = async (req, res) => {
   }
 };
 
-// User login (unchanged)
-// const loginUser = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-//     if (!email || !password || email === "" || password === "") {
-//       return res.status(400).json({ error: "All fields are required" });
-//     }
-//     const user = await User.findOne({
-//       where: { email },
-//       attributes: { exclude: ["deletedAt"] },
-//     });
+// getAllUsers remains unchanged as it doesn't need role-specific numbers
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: { exclude: ["password", "deletedAt"] },
+      paranoid: true,
+    });
 
-//     if (!user) {
-//       return res.status(404).json({ error: "Account not found" });
-//     }
-
-//     const isPasswordValid = await bcrypt.compare(password, user.password);
-
-//     if (!isPasswordValid) {
-//       return res.status(401).json({ error: "Invalid password" });
-//     }
-
-//     const token = generateToken(user);
-
-//     const profilePhotoUrl = user.profilePhoto
-//       ? `${req.protocol}://${req.get("host")}${user.profilePhoto}`
-//       : null;
-
-//     // Include admin level in response if user is admin
-//     const responseData = {
-//       user: {
-//         id: user.id,
-//         username: user.username,
-//         email: user.email,
-//         role: user.role,
-//         sex: user.sex,
-//         profilePhoto: profilePhotoUrl,
-//       },
-//       token,
-//     };
-
-//     if (user.role === "admin") {
-//       const admin = await Admin.findOne({ where: { userId: user.id } });
-
-//       responseData.user.level = admin.level;
-//     }
-
-//     if (user.role === "teacher" && user.teacher) {
-//       const teacher = await Teacher.findOne({ where: { userId: user.id } });
-//       responseData.user.qualifications = teacher.qualifications;
-//       responseData.user.subjects = teacher.subjects;
-//     }
-
-//     res.status(200).json(responseData);
-//   } catch (error) {
-//     console.error("Error logging in:", error);
-//     res.status(500).json({ error: "Failed to log in" });
-//   }
-// };
+    res.status(200).json(users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+};
 
 module.exports = {
   createUser,

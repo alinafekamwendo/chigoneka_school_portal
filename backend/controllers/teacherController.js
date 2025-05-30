@@ -1,6 +1,7 @@
 const { User, Teacher } = require("../models");
 const { validationResult } = require("express-validator");
 const { sequelize } = require("../models");
+const bcrypt = require("bcryptjs");
 
 // Create a new teacher (and associated user)
 const createTeacher = async (req, res) => {
@@ -25,6 +26,9 @@ const createTeacher = async (req, res) => {
       profilePhoto,
     } = req.body;
 
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // First create the User
     const user = await User.create(
       {
@@ -32,7 +36,7 @@ const createTeacher = async (req, res) => {
         lastName,
         username,
         email,
-        password,
+        password: hashedPassword,
         phone,
         address,
         sex,
@@ -42,10 +46,10 @@ const createTeacher = async (req, res) => {
       { transaction }
     );
 
-    // Then create the Teacher with the User's ID
+    // Then create the Teacher with the same ID as User
     const teacher = await Teacher.create(
       {
-        userId: user.id,
+        id: user.id, // Using same ID as user
         qualifications: qualifications || [],
         subjects: subjects || [],
       },
@@ -54,12 +58,24 @@ const createTeacher = async (req, res) => {
 
     await transaction.commit();
 
-    // Return combined data (excluding sensitive info)
+    // Return combined data with staff number
     const response = {
-      ...user.get({ plain: true }),
-      teacherInfo: teacher.get({ plain: true }),
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      email: user.email,
+      phone: user.phone,
+      address: user.address,
+      sex: user.sex,
+      profilePhoto: user.profilePhoto,
+      role: user.role,
+      staffNumber: teacher.staffNumber,
+      qualifications: teacher.qualifications,
+      subjects: teacher.subjects,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     };
-    delete response.password;
 
     res.status(201).json(response);
   } catch (err) {
@@ -76,10 +92,11 @@ const createTeacher = async (req, res) => {
   }
 };
 
-// Get all teachers with basic user info
+// Get all teachers with basic user info and staff numbers
 const getTeachers = async (req, res) => {
   try {
     const teachers = await Teacher.findAll({
+      attributes: ["id", "staffNumber", "qualifications", "subjects"],
       include: [
         {
           model: User,
@@ -91,24 +108,34 @@ const getTeachers = async (req, res) => {
             "email",
             "phone",
             "profilePhoto",
+            "address",
+            "sex",
           ],
         },
       ],
     });
 
-    res.status(200).json(teachers);
+    // Transform the data to a more client-friendly format
+    const formattedTeachers = teachers.map((teacher) => ({
+      id: teacher.id,
+      staffNumber: teacher.staffNumber,
+      qualifications: teacher.qualifications,
+      subjects: teacher.subjects,
+      ...teacher.user.get({ plain: true }),
+    }));
+
+    res.status(200).json(formattedTeachers);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch teachers" });
   }
 };
 
+// Get teacher by ID with staff number
 const getTeacherById = async (req, res) => {
   try {
-    // First find the teacher record that belongs to this user
-    const teacher = await Teacher.findOne({
-      where: { userId: req.params.id },
-      attributes: ["id", "qualifications", "subjects"],
+    const teacher = await Teacher.findByPk(req.params.id, {
+      attributes: ["id", "staffNumber", "qualifications", "subjects"],
       include: [
         {
           model: User,
@@ -128,24 +155,16 @@ const getTeacherById = async (req, res) => {
     });
 
     if (!teacher) {
-      return res.status(404).json({ error: "Teacher not found for this user" });
+      return res.status(404).json({ error: "Teacher not found" });
     }
 
-    // Construct the response object
+    // Construct the response object with staff number
     const response = {
       id: teacher.id,
+      staffNumber: teacher.staffNumber,
       qualifications: teacher.qualifications,
       subjects: teacher.subjects,
-      user: {
-        id: teacher.user.id,
-        firstName: teacher.user.firstName,
-        lastName: teacher.user.lastName,
-        email: teacher.user.email,
-        phone: teacher.user.phone,
-        profilePhoto: teacher.user.profilePhoto,
-        sex: teacher.user.sex,
-        address: teacher.user.address,
-      },
+      ...teacher.user.get({ plain: true }),
     };
 
     res.status(200).json(response);
@@ -167,75 +186,77 @@ const updateTeacher = async (req, res) => {
 
   const transaction = await sequelize.transaction();
   try {
-    // First find the teacher record associated with this user ID
-    const teacher = await Teacher.findOne({
-      where: { userId: req.params.id },
-      transaction,
-    });
-
+    const teacher = await Teacher.findByPk(req.params.id, { transaction });
     if (!teacher) {
       await transaction.rollback();
-      return res.status(404).json({ error: "Teacher not found for this user" });
+      return res.status(404).json({ error: "Teacher not found" });
     }
 
-    // Update user info
-    const user = await User.findByPk(req.params.id, { transaction });
+    // Since we're using shared IDs, we can find the user by the same ID
+    const user = await User.findByPk(teacher.id, { transaction });
     if (!user) {
       await transaction.rollback();
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "Associated user not found" });
     }
 
     const {
       firstName,
       lastName,
+      username,
       email,
       phone,
       address,
+      sex,
+      profilePhoto,
       qualifications,
       subjects,
-      sex, // Added sex since it's in your user model
     } = req.body;
 
-    await user.update(
-      {
-        firstName,
-        lastName,
-        email,
-        phone,
-        address,
-        sex, // Include sex in the update
-      },
-      { transaction }
-    );
+    // Prepare user update fields
+    const userUpdateFields = {};
+    if (firstName !== undefined) userUpdateFields.firstName = firstName;
+    if (lastName !== undefined) userUpdateFields.lastName = lastName;
+    if (username !== undefined) userUpdateFields.username = username;
+    if (email !== undefined) userUpdateFields.email = email;
+    if (phone !== undefined) userUpdateFields.phone = phone;
+    if (address !== undefined) userUpdateFields.address = address;
+    if (sex !== undefined) userUpdateFields.sex = sex;
+    if (profilePhoto !== undefined)
+      userUpdateFields.profilePhoto = profilePhoto;
 
-    // Update teacher-specific info
-    await teacher.update(
-      {
-        qualifications: qualifications || [],
-        subjects: subjects || [],
-      },
-      { transaction }
-    );
+    // Prepare teacher update fields
+    const teacherUpdateFields = {};
+    if (qualifications !== undefined)
+      teacherUpdateFields.qualifications = qualifications;
+    if (subjects !== undefined) teacherUpdateFields.subjects = subjects;
+
+    // Update both records
+    await user.update(userUpdateFields, { transaction });
+    await teacher.update(teacherUpdateFields, { transaction });
+
+    // Reload both records to get updated data
+    await user.reload({ transaction });
+    await teacher.reload({ transaction });
 
     await transaction.commit();
 
-    // Construct response without sensitive data
+    // Construct response with staff number
     const response = {
       id: teacher.id,
+      staffNumber: teacher.staffNumber,
       qualifications: teacher.qualifications,
       subjects: teacher.subjects,
-      user: {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        sex: user.sex,
-        profilePhoto: user.profilePhoto,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      email: user.email,
+      phone: user.phone,
+      address: user.address,
+      sex: user.sex,
+      profilePhoto: user.profilePhoto,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     };
 
     res.status(200).json(response);
@@ -261,18 +282,21 @@ const updateTeacher = async (req, res) => {
 const deleteTeacher = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
+    // Find teacher by ID (which is the same as user ID)
     const teacher = await Teacher.findByPk(req.params.id, { transaction });
     if (!teacher) {
       await transaction.rollback();
       return res.status(404).json({ error: "Teacher not found" });
     }
 
-    const user = await User.findByPk(teacher.userId, { transaction });
+    // Find user by the same ID
+    const user = await User.findByPk(teacher.id, { transaction });
     if (!user) {
       await transaction.rollback();
       return res.status(404).json({ error: "Associated user not found" });
     }
 
+    // Delete both records
     await teacher.destroy({ transaction });
     await user.destroy({ transaction });
 

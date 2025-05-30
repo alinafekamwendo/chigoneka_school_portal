@@ -11,17 +11,14 @@ export interface Teacher {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
-  user: {
-    id: string; // The ID of the user
-    firstName: string;
-    lastName: string;
-    username: string;
-    email: string;
-    phone?: string;
-    sex?: "Male" | "Female" | "Other"; // Matching backend definition
-    address?: string;
-    profilePhoto?: string;
-  };
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  phone?: string;
+  sex?: "Male" | "Female" | "Other"; // Matching backend definition
+  address?: string;
+  profilePhoto?: string;
 }
 
 // Interface for the data required to create a new teacher
@@ -232,7 +229,6 @@ const teacherService = {
       },
     });
   },
-
 };
 
 export default teacherService;

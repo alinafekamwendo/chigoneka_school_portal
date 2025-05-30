@@ -15,8 +15,6 @@ interface Teacher {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
-  user: {
-    id: string;
     firstName: string;
     lastName: string;
     username: string;
@@ -25,7 +23,6 @@ interface Teacher {
     sex?: "MALE" | "FEMALE";
     address?: string;
     profilePhoto?: string;
-  };
 }
 
 const TeachersPage = () => {
@@ -41,6 +38,7 @@ const TeachersPage = () => {
       if (!token) throw new Error("No authentication token found");
 
       const teachersData = await teacherService.getAllTeachers(token);
+  
       setTeachers(teachersData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch teachers");
@@ -54,11 +52,11 @@ const TeachersPage = () => {
   }, []);
 
   const handleView = (item: any) => {
-    router.push(`/dashboard/admin/teachers/view/${item.rawData.userId}`);
+    router.push(`/dashboard/admin/teachers/view/${item.rawData.id}`);
   };
 
   const handleEdit = (item: any) => {
-    router.push(`/dashboard/admin/teachers/edit/${item.rawData.userId}`);
+    router.push(`/dashboard/admin/teachers/edit/${item.rawData.id}`);
   };
 
   const handleDelete = async (item: any) => {
@@ -84,12 +82,13 @@ const TeachersPage = () => {
     }
   };
 
+  console.log("Teachers data:", teachers);
   // Transform teacher data for the table
   const tableData = teachers.map((teacher) => ({
     id: teacher.id,
-    name: `${teacher.user.firstName} ${teacher.user.lastName}`,
-    email: teacher.user.email,
-    username: teacher.user.username,
+    name: `${teacher.firstName} ${teacher.lastName}`,
+    email: teacher.email,
+    username: teacher.username,
     qualifications: teacher.qualifications.join(", "),
     subjects: teacher.subjects.join(", "),
     status: teacher.deletedAt ? "Inactive" : "Active",
