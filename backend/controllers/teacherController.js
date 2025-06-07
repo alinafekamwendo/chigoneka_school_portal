@@ -1,4 +1,13 @@
-const { User, Teacher } = require("../models");
+const {
+  User,
+  Teacher,
+  TeachingAssignment,
+  Department,
+  Subject,
+  Class,
+  Term,
+  SchoolYear,
+} = require("../models");
 const { validationResult } = require("express-validator");
 const { sequelize } = require("../models");
 const bcrypt = require("bcryptjs");
@@ -45,6 +54,7 @@ const createTeacher = async (req, res) => {
       },
       { transaction }
     );
+
 
     // Then create the Teacher with the same ID as User
     const teacher = await Teacher.create(
@@ -110,6 +120,8 @@ const getTeachers = async (req, res) => {
             "profilePhoto",
             "address",
             "sex",
+            "createdAt",
+            "updatedAt",
           ],
         },
       ],
@@ -121,6 +133,7 @@ const getTeachers = async (req, res) => {
       staffNumber: teacher.staffNumber,
       qualifications: teacher.qualifications,
       subjects: teacher.subjects,
+
       ...teacher.user.get({ plain: true }),
     }));
 
@@ -144,11 +157,15 @@ const getTeacherById = async (req, res) => {
             "id",
             "firstName",
             "lastName",
+            "username",
             "email",
             "phone",
             "profilePhoto",
             "sex",
             "address",
+            "isActive",
+            "createdAt",
+            "updatedAt",
           ],
         },
       ],
@@ -205,6 +222,7 @@ const updateTeacher = async (req, res) => {
       username,
       email,
       phone,
+      isActive,
       address,
       sex,
       profilePhoto,
@@ -221,6 +239,7 @@ const updateTeacher = async (req, res) => {
     if (phone !== undefined) userUpdateFields.phone = phone;
     if (address !== undefined) userUpdateFields.address = address;
     if (sex !== undefined) userUpdateFields.sex = sex;
+    if (isActive !== undefined) userUpdateFields.isActive = isActive;
     if (profilePhoto !== undefined)
       userUpdateFields.profilePhoto = profilePhoto;
 
@@ -309,10 +328,105 @@ const deleteTeacher = async (req, res) => {
   }
 };
 
+
+const assignTeacherDuties = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const { teacherId, duties } = req.body;
+    const teacher = await Teacher.findByPk(teacherId, { transaction });
+
+    if (!teacher) {
+      await transaction.rollback();
+      return res.status(404).json({ error: "Teacher not found" });
+    }
+
+    // Process different duty types
+    for (const duty of duties) {
+      switch (duty.type) {
+        case "HOD":
+          await Department.update(
+            { hodId: teacherId },
+            { where: { id: duty.departmentId }, transaction }
+          );
+          break;
+
+        case "supervisor":
+          await Class.update(
+            { supervisorId: teacherId },
+            { where: { id: duty.classId }, transaction }
+          );
+          break;
+
+        case "teaching":
+          // Validate assignment uniqueness
+          const existing = await TeachingAssignment.findOne({
+            where: {
+              subjectId: duty.subjectId,
+              classId: duty.classId,
+              termId: duty.termId,
+              schoolYearId: duty.schoolYearId,
+            },
+            transaction,
+          });
+
+          if (existing && existing.teacherId !== teacherId) {
+            throw new Error("Subject already assigned to another teacher");
+          }
+
+          // Create or update assignment
+          await TeachingAssignment.upsert(
+            {
+              teacherId,
+              subjectId: duty.subjectId,
+              classId: duty.classId,
+              termId: duty.termId,
+              schoolYearId: duty.schoolYearId,
+              isHOD: duty.isHOD || false,
+            },
+            { transaction }
+          );
+          break;
+      }
+    }
+
+    await transaction.commit();
+    res.status(200).json({ message: "Duties assigned successfully" });
+  } catch (err) {
+    await transaction.rollback();
+    console.error(err);
+    res.status(500).json({
+      error: "Failed to assign duties",
+      message: err.message,
+    });
+  }
+};
+
+const getTeacherAssignments = async (req, res) => {
+  try {
+    const assignments = await TeachingAssignment.findAll({
+      where: { teacherId: req.params.id },
+      include: [
+        { model: Subject, as: "subject" },
+        { model: Class, as: "class" },
+        { model: Term, as: "term" },
+        { model: SchoolYear, as: "schoolYear" },
+      ],
+    });
+
+    res.status(200).json(assignments);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch teacher assignments" });
+  }
+};
+
+
 module.exports = {
   createTeacher,
   getTeachers,
   getTeacherById,
   updateTeacher,
   deleteTeacher,
+  getTeacherAssignments,
+  assignTeacherDuties,
 };

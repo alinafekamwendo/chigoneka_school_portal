@@ -2,7 +2,6 @@
 const nextConfig = {
   typescript: { ignoreBuildErrors: true },
   images: {
-    domains: ["localhost"],
     remotePatterns: [
       // { protocol: "https", hostname: "cdn.sanity.io", port: "" },
       // { protocol: "https", hostname: "lh3.googleusercontent.com", port: "" },
@@ -19,8 +18,8 @@ const nextConfig = {
       {
         protocol: "http",
         hostname: "localhost",
-        port:""
-      }
+        port: "5000",
+      },
     ],
   },
 };

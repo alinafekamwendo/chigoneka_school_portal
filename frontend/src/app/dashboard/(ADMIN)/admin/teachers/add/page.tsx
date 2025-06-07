@@ -4,7 +4,9 @@ import AddForm from "@/components/ModalDialogs/AddForm";
 
 function teacherAddPage() {
     return <div>
-      <AddForm />
+      <AddForm
+        role={"teacher"}
+      />
   </div>;
 }
 

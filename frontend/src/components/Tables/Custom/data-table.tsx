@@ -49,7 +49,7 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
   columns,
   data,
-  filterableColumns = ["email", "status", "clientName"],
+  filterableColumns = [],
   pageSizeOptions = [5, 10, 20],
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -60,7 +60,7 @@ export function DataTable<TData, TValue>({
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [filterColumn, setFilterColumn] = React.useState<string>(
-    filterableColumns[0],
+    filterableColumns.length > 0 ? filterableColumns[0] : "email",
   );
 
   const table = useReactTable({
@@ -101,7 +101,8 @@ export function DataTable<TData, TValue>({
               </SelectTrigger>
               <SelectContent>
                 {filterableColumns.map((column) => (
-                  <SelectItem key={column} value={column}>
+                  <SelectItem key={column} value={column}
+                  className="capitalize">
                     {column}
                   </SelectItem>
                 ))}
@@ -109,7 +110,7 @@ export function DataTable<TData, TValue>({
             </Select>
           </div>
           <Input
-            placeholder={`Filter ${filterColumn}...`}
+            placeholder={`Search by ${filterColumn}...`}
             value={
               (table.getColumn(filterColumn)?.getFilterValue() as string) ?? ""
             }
@@ -122,10 +123,10 @@ export function DataTable<TData, TValue>({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
-              Columns <ChevronDown className="ml-2 h-4 w-4" />
+              View/hide <ChevronDown className="ml-2 flex-1" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" >
             {table
               .getAllColumns()
               .filter((column) => column.getCanHide())
@@ -155,7 +156,9 @@ export function DataTable<TData, TValue>({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead
+                      className="bg-gray-100 font-semibold dark:bg-gray-800"
+                      key={header.id}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -176,7 +179,8 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),

@@ -1,30 +1,79 @@
 import flatpickr from "flatpickr";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const DatePickerOne = () => {
+interface DatePickerProps {
+  label: string;
+  placeholder?: string;
+  value?: Date | null;
+  onChange?: (date: Date | null) => void;
+}
+
+const DatePickerOne = ({
+  label = "Select date",
+  placeholder = "dd/mm/yyyy",
+  value,
+  onChange,
+}: DatePickerProps) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const flatpickrRef = useRef<flatpickr.Instance | null>(null);
+
+  // Initialize Flatpickr
   useEffect(() => {
-    // Init flatpickr
-    flatpickr(".form-datepicker", {
+    if (!inputRef.current) return;
+
+    flatpickrRef.current = flatpickr(inputRef.current, {
       mode: "single",
-      static: true,
-      monthSelectorType: "static",
-      dateFormat: "M j, Y",
+      animate: true,
+      monthSelectorType: "dropdown",
+      closeOnSelect: true,
+      dateFormat: "J F Y",
+      defaultDate: value || undefined,
+      minDate:"1st January 1820",
+     // maxDate: "today", // Example maximum date
       prevArrow:
         '<svg class="fill-current" width="7" height="11" viewBox="0 0 7 11"><path d="M5.4 10.8l1.4-1.4-4-4 4-4L5.4 0 0 5.4z" /></svg>',
       nextArrow:
         '<svg class="fill-current" width="7" height="11" viewBox="0 0 7 11"><path d="M1.4 10.8L0 9.4l4-4-4-4L1.4 0l5.4 5.4z" /></svg>',
+      onChange: (selectedDates) => {
+        const newDate = selectedDates[0] || null;
+        if (onChange) onChange(newDate);
+      },
     });
+
+    return () => {
+      flatpickrRef.current?.destroy();
+    };
   }, []);
+
+  useEffect(() => {
+    if (!flatpickrRef.current) return;
+
+    const currentDate = flatpickrRef.current.selectedDates[0] || null;
+
+    // Only update if value actually changed
+    if (
+      (value instanceof Date && currentDate?.getTime() !== value.getTime()) ||
+      (value === null && currentDate !== null) ||
+      (value === undefined && currentDate !== null)
+    ) {
+      if (value) {
+        flatpickrRef.current.setDate(value, false);
+      } else {
+        flatpickrRef.current.clear();
+      }
+    }
+  }, [value]);
 
   return (
     <div>
       <label className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-        Date picker
+        {label}
       </label>
       <div className="relative">
         <input
+          ref={inputRef}
           className="form-datepicker w-full rounded-[7px] border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal outline-none transition focus:border-primary active:border-primary dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary"
-          placeholder="mm/dd/yyyy"
+          placeholder={placeholder}
           data-class="flatpickr-right"
         />
 

@@ -33,7 +33,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-, "src/components/Tables/CustomDataTable .jsx", "src/components/Tables/MyDataTable.tsx", "src/app/dashboard/(ADMIN)/admin/admins/add/page.jsx", "src/app/dashboard/(ADMIN)/admin/admins/manage/page.jsx"  ],
+, "src/components/Tables/CustomDataTable .jsx", "src/components/Tables/MyDataTable.tsx", "src/app/dashboard/(ADMIN)/admin/admins/add/page.jsx", "src/app/dashboard/(ADMIN)/admin/admins/manage/page.tsx", "src/components/Chat/ChatContainer.jsx", "src/components/Teachers/TeacherAssignment.jsx"  ],
   "exclude": [
     "node_modules"
   ]

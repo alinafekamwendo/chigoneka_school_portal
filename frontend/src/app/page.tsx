@@ -1,11 +1,11 @@
 import School from "@/components/Dashboard/School";
-import { Metadata } from "next";
 import DefaultLayout from "@/components/Layouts/DefaultLayout";
 import React from "react";
+import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Mount Carmel Of God || SMIS",
-  description: "School management system for Mt Carmel of God Academy",
+  title: "SMIS",
+  description: "School management system for managing students, teachers, and classes",
 };
 
 export default function Home() {

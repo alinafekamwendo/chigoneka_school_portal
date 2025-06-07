@@ -22,12 +22,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen ,menuGroups}: SidebarProps) => {
   return (
     <>
       {/* Burger Button for Smaller Screens */}
- {/* Persistent Toggle Button for All Screens */}
+      {/* Persistent Toggle Button for All Screens */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className={`fixed left-4 top-4 z-9999 block rounded-lg p-2 shadow-md transition-transform ${
-          sidebarOpen ? 'translate-x-72' : 'translate-x-0'
-        } lg:block dark:text-white`}
+          sidebarOpen ? "translate-x-72" : "translate-x-0"
+        } dark:text-white lg:block`}
       >
         <svg
           className="h-6 w-6 fill-current"
@@ -47,18 +47,26 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen ,menuGroups}: SidebarProps) => {
         }`}
       >
         {/* Sidebar Header */}
-        <div className="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5 xl:py-10">
-          <Link href="/">
-            <Image
+        <div className="flex items-center justify-between gap-2 px-6 py-3 lg:py-3 xl:py-5 shadow-sm dark:shadow-none">
+          <Link
+            className="flex items-center gap-2 text-lg font-bold text-dark-2 dark:text-white"
+            onClick={() => setPageName("dashboard")}
+            href="/"
+          >
+            {/* <Image
               width={150}
               height={32}
               src={"/images/logo/logo-icon.svg"}
               alt="Logo"
               priority
               className="dark:hidden"
-            />
+            /> */}
+            <h2>
+              CHIGONEKA <span className="text-green">SMIS</span>
+            </h2>
+           
           </Link>
-    
+
           <button
             onClick={() => setSidebarOpen(false)}
             className="hover:bg-light-3 dark:hover:bg-light-3 block rounded-lg p-2 text-dark-4 transition duration-300 ease-in-out dark:text-white lg:hidden"
@@ -76,19 +84,19 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen ,menuGroups}: SidebarProps) => {
             </svg>
           </button>
         </div>
-       
+
         {/* Sidebar Menu */}
         <div className="no-scrollbar flex flex-1 flex-col overflow-y-auto duration-300 ease-linear">
           <nav className="mt-1 max-h-[calc(100vh-150px)] overflow-y-auto px-4 lg:px-6">
             {menuGroups.map((group, groupIndex) => (
-              <div  key={groupIndex}>
+              <div key={groupIndex}>
                 <h3 className="mb-5 text-sm font-medium text-dark-4 dark:text-dark-6">
                   {group.name}
                 </h3>
 
-                <ul className="mb-4 flex flex-col gap-2 ">
+                <ul className="mb-2 flex flex-col gap-2 ">
                   {group.menuItems.map((menuItem, menuIndex) => (
-                    <SidebarItem 
+                    <SidebarItem
                       key={menuIndex}
                       item={menuItem}
                       pageName={pageName}

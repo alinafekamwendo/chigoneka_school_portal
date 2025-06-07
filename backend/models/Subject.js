@@ -25,6 +25,10 @@ module.exports = (sequelize, DataTypes) => {
       as: "teachers",
       onDelete: "CASCADE", // Add this
     });
+    Subject.belongsTo(models.Department, {
+      foreignKey: "departmentId",
+      as: "department",
+    });
   };
 
   return Subject;

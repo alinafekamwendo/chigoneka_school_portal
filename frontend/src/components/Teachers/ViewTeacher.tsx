@@ -10,17 +10,18 @@ interface Teacher {
   qualifications: string[];
   subjects: string[];
   createdAt: string;
-  user: {
-    id: string;
+  updatedAt: string;
+  deletedAt?: string | null;
     firstName: string;
     lastName: string;
     username: string;
     email: string;
-    phone: string;
-    sex: "MALE" | "FEMALE";
+  phone?: string;
+    dob?: string; // Date of birth, optional
+    sex: "Male" | "Female";
     address: string;
     profilePhoto?: string;
-  };
+  
 }
 
 const ViewTeacherPage = () => {
@@ -70,32 +71,32 @@ const ViewTeacherPage = () => {
         <div className="flex flex-col gap-6 md:flex-row">
           <div className="flex-shrink-0">
             <Avatar className="h-32 w-32">
-              <AvatarImage src={teacher.user.profilePhoto} />
+              <AvatarImage src={teacher.profilePhoto} />
               <AvatarFallback>
-                {teacher.user.firstName.charAt(0)}
-                {teacher.user.lastName.charAt(0)}
+                {teacher.firstName.charAt(0)}
+                {teacher.lastName.charAt(0)}
               </AvatarFallback>
             </Avatar>
           </div>
 
           <div className="flex-1">
             <h2 className="text-xl font-semibold">
-              {teacher.user.firstName} {teacher.user.lastName}
+              {teacher.firstName} {teacher.lastName}
             </h2>
-            <p className="mb-4 text-gray-600">{teacher.user.email}</p>
+            <p className="mb-4 text-gray-600">{teacher.email}</p>
 
             <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <h3 className="font-medium text-gray-500">Username</h3>
-                <p>{teacher.user.username}</p>
+                <p>{teacher.username}</p>
               </div>
               <div>
                 <h3 className="font-medium text-gray-500">Phone</h3>
-                <p>{teacher.user.phone}</p>
+                <p>{teacher.phone}</p>
               </div>
               <div>
                 <h3 className="font-medium text-gray-500">Gender</h3>
-                <p>{teacher.user.sex}</p>
+                <p>{teacher.sex}</p>
               </div>
               <div>
                 <h3 className="font-medium text-gray-500">Member Since</h3>
@@ -105,7 +106,7 @@ const ViewTeacherPage = () => {
 
             <div className="mb-4">
               <h3 className="font-medium text-gray-500">Address</h3>
-              <p>{teacher.user.address}</p>
+              <p>{teacher.address}</p>
             </div>
           </div>
         </div>

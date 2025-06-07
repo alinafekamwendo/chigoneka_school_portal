@@ -6,6 +6,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
+import DatePickerOne from "../FormElements/DatePicker/DatePickerOne";
+import { toast } from "react-toastify";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,17 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import AlertSuccess from "../Alerts/AlertSuccess"; // Assuming you have shadcn/ui toast setup
-import { cn } from "@/lib/utils";
-import CalendarIcon from "@mui/icons-material/CalendarToday"; // Or use a lucide-react icon if preferred
-import AlertError from "../Alerts/AlertError";
-import { useToast } from "@/hooks/use-toast";
+
+import Link from "next/link";
 
 // Define the schema for form validation
 const addAdminSchema = z.object({
@@ -75,24 +68,14 @@ const createAdmin = async (data: AddAdminFormValues) => {
   );
   if (!response.ok) {
     throw new Error("Failed to create admin");
+  toast.error(
+    "Failed to create admin. Please check your input and try again.", 
+  );
   }
   return response.json();
 
   //Simulate API call success/failure
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (Math.random() > 0.2) {
-        // Simulate 80% success rate
-        resolve({ success: true, message: "Admin created successfully!" });
-      } else {
-        reject(
-          new Error(
-            "Failed to create admin. Username or email might already exist.",
-          ),
-        );
-      }
-    }, 1000);
-  });
+  
 };
 
 const AddAdminPage = () => {
@@ -113,26 +96,18 @@ const AddAdminPage = () => {
       adminLevel: undefined, // Use undefined for initial state of enum
     },
   });
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const onSubmit = async (values: AddAdminFormValues) => {
     setIsLoading(true);
     try {
       await createAdmin(values);
-      toast({
-        title: "Success",
-        description: "Admin created successfully.",
-        variant: "default",
-        className: "bg-green-500",
-      });
+      toast.success("Admin created successfully!");
       form.reset(); // Clear the form on success
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Something went wrong.",
-        variant: "destructive",
-      });
+     toast.error(
+       error.message || "Failed to create admin. Please try again.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -140,7 +115,7 @@ const AddAdminPage = () => {
 
   return (
     <div className="container mx-auto">
-      <h1 className="mb-2 text-center text-xl font-bold">Add New Admin</h1>
+      <h1 className="mb-2 text-center text-xl font-bold">New Admin Form</h1>
       <div className="mx-auto max-w-md  bg-white p-6 shadow-md">
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
           <div className="grid grid-cols-2 gap-4">
@@ -247,34 +222,12 @@ const AddAdminPage = () => {
 
           {/* Date of Birth (Optional) */}
           <div>
-            <Label htmlFor="dob">Date of Birth (Optional)</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !form.watch("dob") && "text-muted-foreground",
-                    form.formState.errors.dob && "border-red-500",
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {form.watch("dob") ? (
-                    format(form.watch("dob") as Date, "PPP")
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={form.watch("dob") as Date}
-                  onSelect={(date) => form.setValue("dob", date!)} // Use setValue from react-hook-form
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <DatePickerOne
+              label="Date of Birth (Optional)"
+              placeholder="dd/mm/yyyy"
+              value={form.watch("dob") as Date | null}
+              onChange={(date) => form.setValue("dob", date!)}
+            />
             {form.formState.errors.dob && (
               <p className="mt-1 text-sm text-red-500">
                 {form.formState.errors.dob.message}
@@ -350,14 +303,15 @@ const AddAdminPage = () => {
               )}
             </div>
           </div>
-
-          <Button
-            type="submit"
-            className="hover:bg- w-full bg-blue-500"
-            disabled={isLoading}
-          >
-            {isLoading ? "Adding..." : "Add Admin"}
-          </Button>
+      
+            <Button
+              type="submit"
+              className="hover:bg- w-full bg-blue-500"
+              disabled={isLoading}
+            >
+              {isLoading ? "Adding..." : "Save admin"}
+            </Button>
+        
         </form>
       </div>
     </div>

@@ -7,12 +7,14 @@ import MyDataTable from "@/components/Tables/MyDataTable";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import DataTable from "@/components/Tables/Custom/DataTable";
+import {DataTable as AdminDataTable} from "@/components/Tables/Custom/data-table";
+import { adminColumns } from "./adminColumns";
+import { LuUserPlus } from "react-icons/lu";
 
 interface Admin {
   id: string;
   userId: string;
   level: "regular" | "super";
-
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -105,7 +107,16 @@ const AdminsPage = () => {
 
   return (
     <div>
-      <MyDataTable
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Manage Admins</h1>
+        <Button
+          onClick={() => router.push("/dashboard/admin/admins/add")}
+          className="bg-blue-500  text-white hover:bg-blue-600"
+        >
+         <LuUserPlus />
+        </Button>
+      </div>
+      {/* <MyDataTable
         data={tableData}
         columns={[
           {
@@ -138,8 +149,12 @@ const AdminsPage = () => {
         onEdit={handleEdit}
         onDelete={handleDelete}
         className="h-full w-full"
+      /> */}
+      <AdminDataTable
+        data={tableData}
+        columns={adminColumns}
+        filterableColumns={["email", "username", "role"]}
       />
-   <DataTable />
     </div>
   );
 };

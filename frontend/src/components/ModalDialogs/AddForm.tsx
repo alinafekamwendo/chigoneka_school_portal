@@ -1,14 +1,13 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { z } from "zod";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import Compressor from "compressorjs";
-import { useToast } from "@/hooks/use-toast";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import {toast} from "react-toastify"
 import { title } from "process";
+import DatePickerOne from "../FormElements/DatePicker/DatePickerOne";
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -40,7 +39,12 @@ const signupSchema = z.object({
   currentClassId: z.string().optional(),
 });
 
-export default function AddForm() {
+interface AddFormProps {
+  role?: "admin" | "parent" | "teacher" | "student" | null;
+}
+
+
+export default function AddForm({ role: initialRole = null }: AddFormProps) {
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
   >({});
@@ -51,7 +55,7 @@ export default function AddForm() {
     firstName: "",
     lastName: "",
     username: "",
-    role: "",
+    role: initialRole,
     password: "",
     address: "",
     email: "",
@@ -66,7 +70,6 @@ export default function AddForm() {
     gradeLevel: "",
     currentClassId: "",
   });
-const { toast } = useToast();
   const [tempQualification, setTempQualification] = useState("");
   const [tempSubject, setTempSubject] = useState("");
 
@@ -103,19 +106,15 @@ const { toast } = useToast();
             ...prev,
             profilePhoto: compressedFile,
           }));
-          toast({
-            title: "Image Compressed",
-            description: "Your profile photo has been compressed successfully.",
-          }
-          )
+          toast.success("Image Compressed", {
+            autoClose: 1000,
+          });
         },
         error(err) {
-          console.error("Error compressing image:", err);
-          toast({
-            title: "Failed to compress the image. Please try again.",
-            description: "Ensure the image is in a supported format (JPEG, PNG, WebP).",
-            variant: "destructive",
-          });
+          toast.error(
+            err.message || "Failed to compress the image. Please try again.",
+            {},
+          );
         },
       });
     }
@@ -140,7 +139,11 @@ const { toast } = useToast();
       }));
       if (field === "qualifications") setTempQualification("");
       if (field === "subjects") setTempSubject("");
-      toast.success(`${field} added successfully`);
+      toast.success(`${field} added`, {
+        autoClose: 100,
+        position: "bottom-right"
+        
+      });
     }
   };
 
@@ -153,7 +156,10 @@ const { toast } = useToast();
       newArray.splice(index, 1);
       return { ...prev, [field]: newArray };
     });
-    toast.success("Item removed successfully");
+    toast.warning("Item removed successfully", {
+      autoClose: 100,
+      position:"bottom-right"
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -319,6 +325,219 @@ const { toast } = useToast();
     }
   };
 
+  // Effect to handle role changes
+  useEffect(() => {
+    if (initialRole) {
+      setFormData((prev) => ({
+        ...prev,
+        role: initialRole,
+      }));
+    }
+  }, [initialRole]);
+
+  //conditional rendering of role input
+  const renderRoleField = () => {
+    if (initialRole) {
+      return null; // Don't show role field if role is passed as prop
+    }
+
+    return (
+      <div>
+        <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
+          Role
+        </label>
+        <select
+          name="role"
+          value={formData.role || ""}
+          onChange={handleSelectChange}
+          className="w-full rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
+          required
+        >
+          <option value="">Select Role</option>
+          <option value="admin">Admin</option>
+          <option value="parent">Parent</option>
+          <option value="teacher">Teacher</option>
+          <option value="student">Student</option>
+        </select>
+        {validationErrors.role && (
+          <p className="mt-1 text-sm text-red-500">{validationErrors.role}</p>
+        )}
+      </div>
+    );
+  };
+
+  //role specific roles
+  // Modified form rendering logic
+  const renderRoleSpecificFields = () => {
+    if (!formData.role) return null;
+
+    switch (formData.role) {
+     
+      case "admin":
+        return (
+          <div className="rounded-lg border p-4 dark:border-gray-600">
+            <h3 className="mb-3 font-bold">Admin Information</h3>
+            <div>
+              <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
+                Admin Level
+              </label>
+              <select
+                name="level"
+                value={formData.level}
+                onChange={handleSelectChange}
+                className="w-full rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
+              >
+                <option value="regular">Regular Admin</option>
+                <option value="super">Super Admin</option>
+              </select>
+            </div>
+          </div>
+        );
+    case "teacher":
+    return(
+        <div className="rounded-lg border p-4 dark:border-gray-600">
+          <h3 className="mb-3 font-bold">Teacher Information</h3>
+          <div className="mb-4">
+            <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
+              Qualifications
+            </label>
+            <div className="mb-2 flex gap-2">
+              <input
+                type="text"
+                value={tempQualification}
+                onChange={(e) => setTempQualification(e.target.value)}
+                placeholder="Add qualification"
+                className="flex-1 rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  handleArrayAdd("qualifications", tempQualification)
+                }
+                className="rounded-lg bg-primary px-4 py-3 text-white"
+              >
+                Add
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {formData.qualifications.map((qual, index) => (
+                <div
+                  key={index}
+                  className="flex items-center rounded-full bg-gray-200 px-3 py-1 dark:bg-gray-700"
+                >
+                  {qual}
+                  <button
+                    type="button"
+                    onClick={() => handleArrayRemove("qualifications", index)}
+                    className="ml-2 text-red-500"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mb-4">
+            <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
+              Subjects
+            </label>
+            <div className="mb-2 flex gap-2">
+              <input
+                type="text"
+                value={tempSubject}
+                onChange={(e) => setTempSubject(e.target.value)}
+                placeholder="Add subject"
+                className="flex-1 rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
+              />
+              <button
+                type="button"
+                onClick={() => handleArrayAdd("subjects", tempSubject)}
+                className="rounded-lg bg-primary px-4 py-3 text-white"
+              >
+                Add
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {formData.subjects.map((subject, index) => (
+                <div
+                  key={index}
+                  className="flex items-center rounded-full bg-gray-200 px-3 py-1 dark:bg-gray-700"
+                >
+                  {subject}
+                  <button
+                    type="button"
+                    onClick={() => handleArrayRemove("subjects", index)}
+                    className="ml-2 text-red-500"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+      case "student":
+        return (
+          <div className="rounded-lg border p-4 dark:border-gray-600">
+            <h3 className="mb-3 font-bold">Student Information</h3>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
+                  Parent ID
+                </label>
+                <input
+                  type="text"
+                  name="parentId"
+                  value={formData.parentId}
+                  onChange={handleChange}
+                  placeholder="Enter parent's user ID"
+                  className="w-full rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
+                />
+                {validationErrors.parentId && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {validationErrors.parentId}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
+                  Grade Level
+                </label>
+                <select
+                  name="gradeLevel"
+                  value={formData.gradeLevel}
+                  onChange={handleSelectChange}
+                  className="w-full rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
+                >
+                  <option value="">Select Grade</option>
+                  <option value="1">Grade 1</option>
+                  <option value="2">Grade 2</option>
+                </select>
+              </div>
+            </div>
+            <div className="mt-4">
+              <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
+                Class Assignment
+              </label>
+              <select
+                name="currentClassId"
+                value={formData.currentClassId}
+                onChange={handleSelectChange}
+                className="w-full rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
+              >
+                <option value="">Select Class</option>
+                <option value="class1">Class 1</option>
+                <option value="class2">Class 2</option>
+              </select>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="mx-auto max-w-md rounded-lg bg-white p-8 shadow-md dark:bg-gray-800">
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -381,27 +600,10 @@ const { toast } = useToast();
             </p>
           )}
         </div>
-
-        <div>
-          <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-            Role
-          </label>
-          <select
-            name="role"
-            value={formData.role}
-            onChange={handleSelectChange}
-            className="w-full rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
-          >
-            <option value="">Select Role</option>
-            <option value="parent">Parent</option>
-            <option value="teacher">Teacher</option>
-            <option value="student">Student</option>
-          </select>
-          {validationErrors.role && (
-            <p className="mt-1 text-sm text-red-500">{validationErrors.role}</p>
-          )}
-        </div>
-
+        {/* conditional role */}
+        <div>{renderRoleField()}</div>
+        {/* role specific fields */}
+        <div>{renderRoleSpecificFields()}</div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
@@ -482,191 +684,17 @@ const { toast } = useToast();
 
         {/* Date of Birth */}
         <div>
-          <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-            Date of Birth
-          </label>
-          <DatePicker
-            selected={formData.dob}
+          <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300"></label>
+          <DatePickerOne
+            label="Date of Birth"
+            value={formData.dob}
             onChange={handleDateChange}
-            dateFormat="MMMM d, yyyy"
-            placeholderText="Select date of birth"
-            className="w-full rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
-            showYearDropdown
-            scrollableYearDropdown
-            yearDropdownItemNumber={100}
-            dropdownMode="select"
-            minDate={new Date(1900, 0, 1)}
-            maxDate={
-              new Date(new Date().setFullYear(new Date().getFullYear() - 18))
-            }
+            placeholder="Select your date of birth"
           />
           {validationErrors.dob && (
             <p className="mt-1 text-sm text-red-500">{validationErrors.dob}</p>
           )}
         </div>
-
-        {/* Admin Specific Fields */}
-        {formData.role === "admin" && (
-          <div className="rounded-lg border p-4 dark:border-gray-600">
-            <h3 className="mb-3 font-bold">Admin Information</h3>
-            <div>
-              <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                Admin Level
-              </label>
-              <select
-                name="level"
-                value={formData.level}
-                onChange={handleSelectChange}
-                className="w-full rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
-              >
-                <option value="regular">Regular Admin</option>
-                <option value="super">Super Admin</option>
-              </select>
-            </div>
-          </div>
-        )}
-
-        {/* Teacher Specific Fields */}
-        {formData.role === "teacher" && (
-          <div className="rounded-lg border p-4 dark:border-gray-600">
-            <h3 className="mb-3 font-bold">Teacher Information</h3>
-            <div className="mb-4">
-              <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                Qualifications
-              </label>
-              <div className="mb-2 flex gap-2">
-                <input
-                  type="text"
-                  value={tempQualification}
-                  onChange={(e) => setTempQualification(e.target.value)}
-                  placeholder="Add qualification"
-                  className="flex-1 rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
-                />
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleArrayAdd("qualifications", tempQualification)
-                  }
-                  className="rounded-lg bg-primary px-4 py-3 text-white"
-                >
-                  Add
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.qualifications.map((qual, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center rounded-full bg-gray-200 px-3 py-1 dark:bg-gray-700"
-                  >
-                    {qual}
-                    <button
-                      type="button"
-                      onClick={() => handleArrayRemove("qualifications", index)}
-                      className="ml-2 text-red-500"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="mb-4">
-              <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                Subjects
-              </label>
-              <div className="mb-2 flex gap-2">
-                <input
-                  type="text"
-                  value={tempSubject}
-                  onChange={(e) => setTempSubject(e.target.value)}
-                  placeholder="Add subject"
-                  className="flex-1 rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleArrayAdd("subjects", tempSubject)}
-                  className="rounded-lg bg-primary px-4 py-3 text-white"
-                >
-                  Add
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.subjects.map((subject, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center rounded-full bg-gray-200 px-3 py-1 dark:bg-gray-700"
-                  >
-                    {subject}
-                    <button
-                      type="button"
-                      onClick={() => handleArrayRemove("subjects", index)}
-                      className="ml-2 text-red-500"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Student Specific Fields */}
-        {formData.role === "student" && (
-          <div className="rounded-lg border p-4 dark:border-gray-600">
-            <h3 className="mb-3 font-bold">Student Information</h3>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                  Parent ID
-                </label>
-                <input
-                  type="text"
-                  name="parentId"
-                  value={formData.parentId}
-                  onChange={handleChange}
-                  placeholder="Enter parent's user ID"
-                  className="w-full rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
-                />
-                {validationErrors.parentId && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {validationErrors.parentId}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                  Grade Level
-                </label>
-                <select
-                  name="gradeLevel"
-                  value={formData.gradeLevel}
-                  onChange={handleSelectChange}
-                  className="w-full rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
-                >
-                  <option value="">Select Grade</option>
-                  <option value="1">Grade 1</option>
-                  <option value="2">Grade 2</option>
-                </select>
-              </div>
-            </div>
-            <div className="mt-4">
-              <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                Class Assignment
-              </label>
-              <select
-                name="currentClassId"
-                value={formData.currentClassId}
-                onChange={handleSelectChange}
-                className="w-full rounded-lg border border-gray-300 bg-transparent p-3 font-medium outline-none focus:border-primary dark:border-gray-600"
-              >
-                <option value="">Select Class</option>
-                <option value="class1">Class 1</option>
-                <option value="class2">Class 2</option>
-              </select>
-            </div>
-          </div>
-        )}
 
         <div>
           <label className="mb-2 block font-medium text-gray-700 dark:text-gray-300">

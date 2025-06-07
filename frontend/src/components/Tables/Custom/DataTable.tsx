@@ -1,6 +1,4 @@
-// app/payments/page.tsx
 "use client";
-import { Payment } from "./payment";
 import { columns } from "./columns";
 import { DataTable } from "./data-table";
 
@@ -93,7 +91,10 @@ export default  function PaymentsPage() {
   return (
     <div className="container mx-auto py-10">
       <h1 className="mb-4 text-2xl font-bold">Payments Dashboard</h1>
-      <DataTable columns={columns} data={data} />
+      <DataTable columns={columns} data={data}
+        filterableColumns={["status", "email", "clientName"]}
+      
+      />
     </div>
   );
 }

@@ -11,10 +11,11 @@ export interface User {
   email: string;
   role: "admin" | "teacher" | "parent" | "student";
   name: string;
-  profilePicture?: string;
+  profilePhoto?: string;
   phone?: string;
   address?: string;
   dateOfBirth?: string;
+  isActive?: boolean;
   // Add other user fields as needed
 }
 

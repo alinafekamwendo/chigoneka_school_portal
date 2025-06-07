@@ -1,25 +1,8 @@
 import axios from "axios";
+import {Teacher} from "../types/teacher"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-// Interface for the Teacher data received from the API
-export interface Teacher {
-  id: string; // The ID of the teacher record itself
-  userId: string; // The ID of the associated user record
-  qualifications: string[];
-  subjects: string[];
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-  firstName: string;
-  lastName: string;
-  username: string;
-  email: string;
-  phone?: string;
-  sex?: "Male" | "Female" | "Other"; // Matching backend definition
-  address?: string;
-  profilePhoto?: string;
-}
 
 // Interface for the data required to create a new teacher
 export interface CreateTeacherData {
@@ -30,7 +13,7 @@ export interface CreateTeacherData {
   password?: string; // Password might be required for user creation part
   phone?: string;
   address?: string;
-  sex?: "Male" | "Female" | "Other";
+  sex?: "Male" | "Female";
   qualifications?: string[];
   subjects?: string[];
   profilePhoto?: string;
@@ -44,7 +27,8 @@ export interface UpdateTeacherData {
   email?: string;
   phone?: string;
   address?: string;
-  sex?: "Male" | "Female" | "Other";
+  sex?: "Male" | "Female";
+  isActive?:boolean,
   qualifications?: string[];
   subjects?: string[];
   profilePhoto?: string;

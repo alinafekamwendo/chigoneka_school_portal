@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast} from "react-toastify"
 import {
   Select,
   SelectContent,
@@ -15,19 +16,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+;
 import { cn } from "@/lib/utils";
-import CalendarIcon from "@mui/icons-material/CalendarToday";
-import { useToast } from "@/hooks/use-toast";
+
 import { Textarea } from "@/components/ui/textarea";
-import { ToastAction } from "@/components/ui/toast";
-import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import DatePickerOne from "../FormElements/DatePicker/DatePickerOne";
 
 // Define the schema for form validation
 const addTeacherSchema = z.object({
@@ -81,7 +75,7 @@ const AddTeacherPage = () => {
     },
   });
 
-  const { toast } = useToast();
+ 
   const [isLoading, setIsLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
@@ -169,40 +163,26 @@ const AddTeacherPage = () => {
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to create teacher");
+        toast.error(
+          errorData.message || "Failed to create teacher",
+        );
+
       }
 
       const result = await response.json();
 
-      toast({
-        title: "Success 🎉",
-        description: "Teacher has been successfully created.",
-        action: (
-          <ToastAction
-            altText="View teacher"
-            onClick={() => (window.location.href = `/teachers/${result.id}`)}
-          >
-            View Teacher
-          </ToastAction>
-        ),
+      toast.success("Teacher created successfully!", {
+        position: "top-right",
       });
+       
 
       // Reset form after successful submission
       form.reset();
       setPreviewImage(null);
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create teacher.",
-        variant: "destructive",
-        action: (
-          <ToastAction
-            altText="Try again"
-            onClick={() => window.location.reload()}
-          >
-            Try Again
-          </ToastAction>
-        ),
-      });
+      toast.error(error.message || "Failed to create teacher"
+      );
+    
     } finally {
       setIsLoading(false);
     }
@@ -340,27 +320,15 @@ const AddTeacherPage = () => {
             </div>
 
             {/* Date of Birth - Using react-datepicker */}
-            <div>
-              <Label htmlFor="dob">Date of Birth</Label>
-              <DatePicker
-                selected={form.watch("dob")}
-                onChange={(date: Date) => form.setValue("dob", date)}
-                dateFormat="MMMM d, yyyy"
-                placeholderText="Select date of birth"
-                className={cn(
-                  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-                  form.formState.errors.dob && "border-red-500",
-                )}
-                showYearDropdown
-                dropdownMode="select"
-                minDate={new Date(1900, 0, 1)}
-                maxDate={
-                  new Date(
-                    new Date().setFullYear(new Date().getFullYear() - 18),
-                  )
-                }
-                yearDropdownItemNumber={100}
-                scrollableYearDropdown
+            <div className="min-w-full max-w-full">
+              <DatePickerOne
+                label="Date of Birth (Optional)"
+                placeholder="Select date of birth"
+                value={ form.watch("dob") || null}
+                onChange={(date: Date | null) => {
+                  form.setValue("dob", date || undefined);
+                }}
+                
               />
               {form.formState.errors.dob && (
                 <p className="mt-1 text-sm text-red-500">

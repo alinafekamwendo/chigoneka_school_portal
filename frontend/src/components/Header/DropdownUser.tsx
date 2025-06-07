@@ -2,42 +2,46 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import ClickOutside from "@/components/ClickOutside";
+import { useToast } from "@/hooks/use-toast";
 
 import { logout } from "@/service/authService";
+import { useAuth } from "@/service/authContext";
 
 
 const DropdownUser = () => {
+  const { toast } = useToast();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [avatar, setAvatar] = useState("");
-  
-  
+  const { user, loading } = useAuth();
 
-  // Use useEffect to set the username when the component mounts
-  useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (user) {
-      // const parsedUser = JSON.parse(user);
-      // setUsername(parsedUser.username);
-      // setEmail(parsedUser.email);
-      // setAvatar(parsedUser.profilePhoto);
   
-    }
-  }, []); // Empty dependency array ensures this runs only once on mount
 
   const handleLogout =() => {
   try {
 
     logout();
+    toast({
+      title: "Logout successful",
+      description: "You have been logged out successfully.",
+      variant: "default"
+      
+    });
     window.location.href = "/auth/login";
   } catch (error) {
+    toast({
+      title: "Logout failed",
+      description: "An error occurred while logging out. Please try again.",
+      variant: "destructive",
+    });
+     // Log the error for debugging purposes
     console.error("Logout error:", error);  
   }
   };
 
   return (
-    <ClickOutside onClick={() => setDropdownOpen(false)} className="relative">
+    <ClickOutside onClick={() => setDropdownOpen(false)} className="relative ">
       <Link
         onClick={() => setDropdownOpen(!dropdownOpen)}
         className="flex items-center gap-4"
@@ -47,14 +51,16 @@ const DropdownUser = () => {
           <Image
             width={112}
             height={112}
-            src={avatar || "/images/user/user-03.png"}
+            src={user?.profilePhoto || "/images/user/user-03.png"}
             alt="User"
             className="h-full w-full object-cover"
           />
         </span>
 
         <span className="flex items-center gap-2 font-medium text-dark dark:text-dark-6">
-          <span className="hidden lg:block">{username || "John Smith"}</span>
+          <span className="hidden lg:block">
+            {user?.username || "John Smith"}
+          </span>
 
           <svg
             className={`fill-current duration-200 ease-in ${dropdownOpen && "rotate-180"}`}
@@ -77,14 +83,14 @@ const DropdownUser = () => {
       {/* <!-- Dropdown Start --> */}
       {dropdownOpen && (
         <div
-          className={`absolute right-0 mt-7.5 flex w-[280px] flex-col rounded-lg border-[0.5px] border-stroke bg-white shadow-default dark:border-dark-3 dark:bg-gray-dark`}
+          className={`absolute right-0 mt-4 flex w-[280px] flex-col rounded-lg border-[0.5px] border-stroke bg-white shadow-default dark:border-dark-3 dark:bg-gray-dark`}
         >
           <div className="flex items-center gap-2.5 px-5 pb-5.5 pt-3.5">
             <span className="relative block h-12 w-12 flex-shrink-0 overflow-hidden rounded-full">
               <Image
                 width={112}
                 height={112}
-                src={avatar || "/images/user/user-03.png"}
+                src={user?.profilePhoto || "/images/user/user-03.png"}
                 alt="User"
                 className="h-full w-full object-cover"
               />
@@ -94,10 +100,13 @@ const DropdownUser = () => {
 
             <span className="block min-w-0">
               <span className="block truncate font-medium text-dark dark:text-white">
-                {username || "John Smith"}
+                {user?.username || "John Smith"}
               </span>
               <span className="block break-words font-medium text-dark-5 dark:text-dark-6">
-                {email || "jonson@nextadmin.com"}
+                {user?.email || "jonson@nextadmin.com"}
+              </span>
+              <span className="block truncate font-medium text-dark dark:text-white">
+                {user?.role || "John Smith"}
               </span>
             </span>
           </div>

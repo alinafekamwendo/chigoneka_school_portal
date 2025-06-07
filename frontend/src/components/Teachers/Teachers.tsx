@@ -6,24 +6,11 @@ import teacherService from "@/service/teacher_service";
 import MyDataTable from "@/components/Tables/MyDataTable";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { LuUserPlus } from "react-icons/lu";
+import { teacherColumns } from "./teacherColumns";
+import {DataTable as TeacherDataTable} from "@/components/Tables/Custom/data-table";
+import {Teacher} from "../../types/teacher"
 
-interface Teacher {
-  id: string;
-  userId: string;
-  qualifications: string[];
-  subjects: string[];
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-    firstName: string;
-    lastName: string;
-    username: string;
-    email: string;
-    phone?: string;
-    sex?: "MALE" | "FEMALE";
-    address?: string;
-    profilePhoto?: string;
-}
 
 const TeachersPage = () => {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -64,7 +51,7 @@ const TeachersPage = () => {
       const token = localStorage.getItem("access_token");
       if (!token) throw new Error("No authentication token found");
 
-      await teacherService.deleteTeacher(item.rawData.id, token);
+      await teacherService.deleteTeacher(item.id, token);
       toast({
         title: "Teacher deleted",
         description: "The teacher has been successfully deleted.",
@@ -83,17 +70,26 @@ const TeachersPage = () => {
   };
 
   console.log("Teachers data:", teachers);
+  console.log("teacher columns",teacherColumns)
   // Transform teacher data for the table
   const tableData = teachers.map((teacher) => ({
     id: teacher.id,
-    name: `${teacher.firstName} ${teacher.lastName}`,
+    staffNumber: teacher.staffNumber,
+    firstName: teacher.firstName,
+    lastName: teacher.lastName,
+    phone: teacher.phone || "N/A",
     email: teacher.email,
     username: teacher.username,
+    sex: teacher.sex || "N/A",
+    isActive:teacher.isActive? "Active" : "InActive",
+    address: teacher.address || "N/A",
     qualifications: teacher.qualifications.join(", "),
     subjects: teacher.subjects.join(", "),
-    status: teacher.deletedAt ? "Inactive" : "Active",
+    deletedAt: new Date(teacher.deletedAt || "").toLocaleDateString(),
+    profilePhoto: teacher.profilePhoto || "https://via.placeholder.com/150",
     createdAt: new Date(teacher.createdAt).toLocaleDateString(),
-    rawData: teacher,
+    updatedAt: new Date(teacher.updatedAt).toLocaleDateString(),
+
   }));
 
   if (loading) return <div className="p-4">Loading...</div>;
@@ -103,60 +99,19 @@ const TeachersPage = () => {
     <div className="p-2">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Teachers</h1>
-        <Button onClick={() => router.push("/dashboard/teachers/add")}>
-          Add New Teacher
+        <Button
+          className="bg-blue-600  text-white hover:bg-blue-700"
+          onClick={() => router.push("/dashboard/admin/teachers/add")}
+        >
+          <LuUserPlus />
         </Button>
       </div>
 
-      <MyDataTable
-        data={tableData}
-        columns={[
-          {
-            key: "name",
-            label: "Name",
-            isSortable: true,
-            isFilterable: true,
-          },
-          {
-            key: "email",
-            label: "Email",
-            isSortable: true,
-            isFilterable: true,
-          },
-          // {
-          //   key: "username",
-          //   label: "Username",
-          //   isSortable: true,
-          // },
-          {
-            key: "qualifications",
-            label: "Qualifications",
-            isSortable: false,
-          },
-          {
-            key: "subjects",
-            label: "Subjects",
-            isSortable: false,
-          },
-          {
-            key: "createdAt",
-            label: "Created At",
-            isSortable: true,
-          },
-          {
-            key: "status",
-            label: "Status",
-            isSortable: true,
-            isFilterable: true,
-            filterType: "select",
-            filterOptions: ["Active", "Inactive"],
-          },
-        ]}
-        onView={handleView}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        className="h-full w-full"
-      />
+     <TeacherDataTable
+            data={tableData}
+            columns={teacherColumns}
+            filterableColumns={["email", "username", "role"]}
+          />
     </div>
   );
 };

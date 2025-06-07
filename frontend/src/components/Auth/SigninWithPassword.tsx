@@ -1,18 +1,20 @@
 "use client";
 
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { z } from "zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import Tooltip from "@mui/material/Tooltip";
-import Alert from "@mui/material/Alert";
+// Removed Alert from MUI
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useAuth } from "@/service/authContext";
-import { useToast } from "@/hooks/use-toast";
-import { title } from "process";
+
+// Keep react-toastify import
+import { toast } from "react-toastify";
+// NOTE: You DO NOT import ToastContainer here. It goes in your root layout file.
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -26,7 +28,7 @@ export default function SigninWithPassword() {
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
   >({});
-  const [showSuccess, setShowSuccess] = useState(false);
+  // Removed showSuccess state
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -34,19 +36,23 @@ export default function SigninWithPassword() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
-  const { toast
-} = useToast();
 
+  // Optional: Redirect if user is already logged in
+  useEffect(() => {
+    if (user) {
+      router.push(redirect || "/");
+    }
+  }, [user, router, redirect]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError("");
+    setError(""); // Clear previous errors
 
-    // Validate input
+    // Validate input using Zod
     try {
       loginSchema.parse({ email, password });
-      setValidationErrors({});
+      setValidationErrors({}); // Clear validation errors if successful
     } catch (err) {
       setIsLoading(false);
       if (err instanceof z.ZodError) {
@@ -58,6 +64,8 @@ export default function SigninWithPassword() {
           {} as Record<string, string>,
         );
         setValidationErrors(errors);
+        // Show a toast for validation errors (optional, as errors are shown below fields)
+        toast.error("Please correct the form errors.");
         return;
       }
     }
@@ -65,23 +73,22 @@ export default function SigninWithPassword() {
     // Use context login
     try {
       await login({ email, password });
-      toast({
-        title: "Login successful",
-        description:  "Successfully logged in.",
-      });
-      // assumes username = email
-      setShowSuccess(true);
+
+      // Show success toast IMMEDIATELY after successful login
+      toast.success("Login successful");
+
       setTimeout(() => {
         router.push(redirect || "/");
-        setShowSuccess(false);
       }, 3000);
+  
     } catch (err: any) {
+      // Set a general error message for login failures
       setError("Login failed. Please check your credentials.");
-      toast({
-        title: "Error",
-        description: err.message || "Something went wrong.",
-        variant: "destructive",
-      });
+
+      // Show error toast
+      toast.error(
+         "Login failed. Please check your credentials.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -89,14 +96,7 @@ export default function SigninWithPassword() {
 
   return (
     <>
-      {showSuccess && (
-        <Alert
-          severity="success"
-          onClose={() => setShowSuccess(false)}>
-          Login successful. Redirecting...
-        </Alert>
-      )}
-
+      {/* Removed showSuccess Alert - it's no longer needed */}
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
           <label
@@ -190,7 +190,7 @@ export default function SigninWithPassword() {
           disabled={isLoading}
         >
           {isLoading ? (
-            <CircularProgress size={24} className="text-white bg-blue-950" />
+            <CircularProgress size={24} className="bg-blue-950 text-white" />
           ) : (
             "Sign In"
           )}

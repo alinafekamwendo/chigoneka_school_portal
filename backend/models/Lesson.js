@@ -51,6 +51,21 @@ module.exports = (sequelize, DataTypes) => {
         },
         onDelete: "CASCADE", // Add this
       },
+      termId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: { model: "terms", key: "id" },
+      },
+      schoolYearId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: { model: "school_years", key: "id" },
+      },
+      assignmentId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: { model: "teaching_assignments", key: "id" },
+      },
     },
     {
       tableName: "lessons",
@@ -77,6 +92,10 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: "lessonId",
       as: "exams",
       onDelete: "CASCADE", // Add this
+    });
+    Lesson.belongsTo(models.TeachingAssignment, {
+      foreignKey: "assignmentId",
+      as: "assignment",
     });
   };
 

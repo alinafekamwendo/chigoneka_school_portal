@@ -1,7 +1,7 @@
 const express = require("express");
-const { body } = require("express-validator");
 const teacherController = require("../controllers/teacherController"); // Assuming your controller is in a 'controllers' folder
 const router = express.Router();
+const { authenticate, authorize } = require("../middlewares/authMiddleware");
 
 
 
@@ -25,5 +25,18 @@ router.put(
 
 // Route to delete a teacher and associated user
 router.delete("/:id", teacherController.deleteTeacher);
+
+// New routes for teacher assignments
+router.get('/:id/assignments', 
+  authenticate,
+  authorize(['teacher', 'admin']), // Only teachers and admins can access 
+  teacherController.getTeacherAssignments
+);
+
+router.post('/:id/assign-duties', 
+  authenticate,
+  authorize(['admin']), // Only admins can assign duties
+  teacherController.assignTeacherDuties
+);
 
 module.exports = router;

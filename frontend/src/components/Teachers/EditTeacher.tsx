@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import teacherService from "@/service/teacher_service"; // Ensure this path is correct
-import { useToast } from "@/hooks/use-toast"; // Ensure this path is correct
+ // Ensure this path is correct
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {toast} from "react-toastify"
 import {
   Select,
   SelectContent,
@@ -24,33 +25,11 @@ import { Calendar } from "@/components/ui/calendar"; // Import Calendar componen
 import CalendarIcon from "@mui/icons-material/CalendarToday"; // Import Calendar icon
 import { cn } from "@/lib/utils"; // Import cn for conditional classnames
 import { format } from "date-fns"; // Import format for date display
-
-// Define the Teacher interface more accurately based on your service and backend
-interface TeacherDataFromAPI {
-  id: string; // Teacher ID
-  qualifications: string[];
-  subjects: string[];
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-  user: {
-    id: string; // User ID
-    firstName: string;
-    lastName: string;
-    username: string;
-    email: string;
-    phone?: string;
-    sex?: "MALE" | "FEMALE" | "Other"; // Ensure 'Other' is handled if applicable
-    address?: string;
-    profilePhoto?: string;
-    dob?: string; // Add dob to user interface if it exists
-  };
-}
+import {Teacher as TeacherDataFromAPI} from "../../types/teacher"
 
 const EditTeacherPage = () => {
   const { id } = useParams(); // This 'id' is the teacher's ID
   const router = useRouter();
-  const { toast } = useToast();
 
   // Initialize teacher state with null or a default structure
   const [teacher, setTeacher] = useState<TeacherDataFromAPI | null>(null);
@@ -101,13 +80,10 @@ const EditTeacherPage = () => {
         teacherData.subjects = teacherData.subjects || [];
 
         setTeacher(teacherData);
+        console.log("teacher data", teacherData);
       } catch (err: any) {
         setError(err.message || "Failed to fetch teacher data.");
-        toast({
-          title: "Error",
-          description: err.message || "Failed to fetch teacher data.",
-          variant: "destructive",
-        });
+        toast.error(err.message || "Failed to fetch teacher data.");
       } finally {
         setLoading(false);
       }
@@ -135,11 +111,7 @@ const EditTeacherPage = () => {
         if (field === "qualifications") setTempQualification("");
         if (field === "subjects") setTempSubject("");
       } else {
-        toast({
-          title: "Duplicate Entry",
-          description: `${value.trim()} is already added to ${field}.`,
-          variant: "default",
-        });
+        toast.error("Duplicate Entry");
       }
     }
   };
@@ -165,42 +137,36 @@ const EditTeacherPage = () => {
         if (!prevTeacher) return null;
         return {
           ...prevTeacher,
-          user: {
-            ...prevTeacher.user,
-            [name]: value,
-          },
+          [name]: value, // <--- CORRECTED: Dynamically update the field
         };
       });
     }
   };
 
-  // Handler for select changes (e.g., sex)
-  const handleSelectChange = (value: string, name: string) => {
+  // Handler for select changes (e.g., sex, isActive)
+  const handleSelectChange = (
+    value: boolean | string, // value will be 'MALE'/'FEMALE' for sex, or 'true'/'false' string for isActive
+    name: keyof TeacherDataFromAPI, // 'sex' or 'isActive'
+  ) => {
     if (teacher) {
       setTeacher((prevTeacher) => {
         if (!prevTeacher) return null;
         return {
           ...prevTeacher,
-          user: {
-            ...prevTeacher.user,
-            [name]: value,
-          },
+          [name]: value, // <--- CORRECTED: Dynamically update the field
         };
       });
     }
   };
 
-  // Handler for date of birth change
+  // Handler for date of birth chang
   const handleDateChange = (date: Date | undefined) => {
     if (teacher) {
       setTeacher((prevTeacher) => {
         if (!prevTeacher) return null;
         return {
           ...prevTeacher,
-          user: {
-            ...prevTeacher.user,
-            dob: date ? date.toISOString() : undefined, // Store as ISO string
-          },
+          dob: date, // <--- CORRECTED: Update the dob field
         };
       });
     }
@@ -217,14 +183,16 @@ const EditTeacherPage = () => {
       // Construct the data payload for updateTeacher service
       // This should match the `UpdateTeacherData` interface in your teacher_service.ts
       const updatePayload = {
-        firstName: teacher.user.firstName,
-        lastName: teacher.user.lastName,
-        username: teacher.user.username, // Include username if it can be updated
-        email: teacher.user.email,
-        phone: teacher.user.phone,
-        sex: teacher.user.sex,
-        address: teacher.user.address,
-        // CORRECTED: Send the actual arrays from state
+        firstName: teacher.firstName,
+        lastName: teacher.lastName,
+        username: teacher.username, // Include username if it can be updated
+        email: teacher.email,
+        phone: teacher.phone,
+        sex: teacher.sex,
+        isActive: teacher.isActive,
+        address: teacher.address,
+        dob: teacher.dob ? new Date(teacher.dob).toISOString() : undefined, // Convert to ISO string if date is provided
+
         qualifications: teacher.qualifications,
         subjects: teacher.subjects,
         // profilePhoto: teacher.user.profilePhoto, // If you allow updating profile photo
@@ -235,20 +203,10 @@ const EditTeacherPage = () => {
       // Call the updateTeacher service
       await teacherService.updateTeacher(teacher.id, updatePayload, token);
 
-      toast({
-        title: "Teacher updated",
-        description: "The teacher has been successfully updated.",
-        duration: 3000,
-      });
+      toast.success("Teacher updated");
       router.push("/dashboard/admin/teachers/manage"); // Navigate back to manage page
     } catch (error: any) {
-      toast({
-        title: "Error updating teacher",
-        description:
-          error.message || "Failed to update teacher. Please try again later.",
-        duration: 3000,
-        variant: "destructive",
-      });
+      toast.error(error.message || "Error updating teacher");
     }
   };
 
@@ -261,7 +219,14 @@ const EditTeacherPage = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="mb-6 text-center text-2xl font-bold">Edit Teacher</h1>
+      <h1 className="mb-6 text-center text-2xl font-bold">
+        Editing teacher:
+        <span className="capitalize text-green-500 "> {teacher.firstName}</span>
+        <span className="pl-1 capitalize text-green-500">
+          {" "}
+          {teacher.lastName}
+        </span>
+      </h1>
       <div className="mx-auto max-w-2xl rounded-lg bg-white p-6 shadow-md">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* User Information Section */}
@@ -275,7 +240,7 @@ const EditTeacherPage = () => {
               <Input
                 id="firstName"
                 name="firstName"
-                value={teacher.user.firstName || ""}
+                value={teacher.firstName || ""}
                 onChange={handleChange}
                 required
               />
@@ -287,7 +252,7 @@ const EditTeacherPage = () => {
               <Input
                 id="lastName"
                 name="lastName"
-                value={teacher.user.lastName || ""}
+                value={teacher.lastName || ""}
                 onChange={handleChange}
                 required
               />
@@ -299,7 +264,7 @@ const EditTeacherPage = () => {
               <Input
                 id="username"
                 name="username"
-                value={teacher.user.username || ""}
+                value={teacher.username || ""}
                 onChange={handleChange}
                 required
               />
@@ -312,7 +277,7 @@ const EditTeacherPage = () => {
                 id="email"
                 name="email"
                 type="email"
-                value={teacher.user.email || ""}
+                value={teacher.email || ""}
                 onChange={handleChange}
                 required
               />
@@ -325,7 +290,7 @@ const EditTeacherPage = () => {
                 id="phone"
                 name="phone"
                 type="tel"
-                value={teacher.user.phone || ""}
+                value={teacher.phone || ""}
                 onChange={handleChange}
                 required
               />
@@ -340,12 +305,12 @@ const EditTeacherPage = () => {
                     variant={"outline"}
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !teacher.user.dob && "text-muted-foreground",
+                      !teacher.dob && "text-muted-foreground",
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {teacher.user.dob ? (
-                      format(new Date(teacher.user.dob), "PPP")
+                    {teacher.dob ? (
+                      format(new Date(teacher.dob), "PPP")
                     ) : (
                       <span>Pick a date</span>
                     )}
@@ -354,9 +319,7 @@ const EditTeacherPage = () => {
                 <PopoverContent className="w-auto p-0">
                   <Calendar
                     mode="single"
-                    selected={
-                      teacher.user.dob ? new Date(teacher.user.dob) : undefined
-                    }
+                    selected={teacher.dob ? new Date(teacher.dob) : undefined}
                     onSelect={handleDateChange}
                     initialFocus
                     fromYear={1960}
@@ -368,9 +331,26 @@ const EditTeacherPage = () => {
 
             {/* Gender */}
             <div>
+              <Label htmlFor="status">Status*</Label>
+              <Select
+                value={teacher.isActive ? "true" : "false"} // <--- Changed to "true"/"false" strings
+                onValueChange={(value) => {
+                  handleSelectChange(value === "true", "isActive");
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Active</SelectItem>
+                  <SelectItem value="false">Not Active</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label htmlFor="sex">Gender*</Label>
               <Select
-                value={teacher.user.sex || ""}
+                value={teacher.sex || ""}
                 onValueChange={(value) => handleSelectChange(value, "sex")}
               >
                 <SelectTrigger className="w-full">
@@ -392,7 +372,7 @@ const EditTeacherPage = () => {
             <Input
               id="address"
               name="address"
-              value={teacher.user.address || ""}
+              value={teacher.address || ""}
               onChange={handleChange}
               required
             />
@@ -493,7 +473,7 @@ const EditTeacherPage = () => {
             <Textarea
               id="bio"
               name="bio"
-              value={(teacher.user as any).bio || ""} // Assuming bio is part of user model
+              value={(teacher as any).bio || ""} // Assuming bio is part of user model
               onChange={handleChange}
               rows={3}
               placeholder="Tell us a little about the teacher..."

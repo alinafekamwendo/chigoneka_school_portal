@@ -2,6 +2,10 @@ const express = require("express");
 const dotenv = require("dotenv");
 const authRoutes = require("./routes/auth.route.js");
 const adminRoutes = require("./routes/admin.route.js");
+const assignmentRoutes = require("./routes/teachingAssignment.route.js");
+const chatRoutes = require("./routes/chat.routes.js");
+const messageRoutes = require("./routes/messages.routes.js");
+const departmentRoutes = require("./routes/departments.routes.js");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const path = require("path");
@@ -34,6 +38,10 @@ app.use(
 app.use(`/${apiVersion}/auth`, authRoutes);
 app.use(`/${apiVersion}/admin`, adminRoutes);
 app.use(`/${apiVersion}/teachers`, require("./routes/teacher.route.js"));
+app.use(`/${apiVersion}/teachers/assign`, assignmentRoutes);
+app.use(`/${apiVersion}/chats`, chatRoutes);
+app.use(`/${apiVersion}/messages`, messageRoutes);
+app.use(`/${apiVersion}/departments`, departmentRoutes);
 
 // Home route
 app.get(`/${apiVersion}`, (req, res) => {
